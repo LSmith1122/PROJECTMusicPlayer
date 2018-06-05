@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
     static java.lang.reflect.Field[] fields;
     static Context activityContext;
     static SongObject currentSong;
-    static boolean isReturning;
     static boolean focusGranted;
 
     ImageButton playButton;
@@ -42,32 +41,11 @@ public class MainActivity extends AppCompatActivity {
     static Runnable runnable;
     static Handler handler;
 
-    MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
-        @Override
-        public void onCompletion(MediaPlayer mp) {
-            releaseMediaPlayer();
-        }
-    };
-    static AudioManager.OnAudioFocusChangeListener mFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-        @Override
-        public void onAudioFocusChange(int focusChange) {
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                releaseMediaPlayer();
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                media.pause();
-            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                media.start();
-            }
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         activityContext = getApplicationContext();
-
-        Log.i("TEST", "onCreate - MainActivity");
 
         playButton = findViewById(R.id.play);
         nextButton = findViewById(R.id.next);
@@ -77,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         totalDurationText = findViewById(R.id.total_duration);
         seekBar = findViewById(R.id.seekbar);
 
+        audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         handler = new Handler();
 
         playButton.setOnClickListener(new View.OnClickListener() {
@@ -162,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (media == null) {
             media = MediaPlayer.create(MainActivity.this, getMediaAtPosition(0));
-            seekBar.setMax(media.getDuration());
+            media.setOnCompletionListener(mCompletionListener);
         }
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -191,8 +170,34 @@ public class MainActivity extends AppCompatActivity {
         playCycle();
     }
 
+    MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
+        @Override
+        public void onCompletion(MediaPlayer mp) {
+            int capOff = songList.size() - 1;
+            if (currentPosition < capOff) {
+                media.stop();
+                media.release();
+                playMediaFromPosition(changeTrackTo(currentPosition, 1));
+                playButton.setImageResource(R.drawable.baseline_pause_white_24);
+            } else {
+                releaseMediaPlayer();
+            }
+        }
+    };
+    static AudioManager.OnAudioFocusChangeListener mFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                releaseMediaPlayer();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                media.pause();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                media.start();
+            }
+        }
+    };
+
     public boolean isFocusGranted() {
-        audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         int result = audioManager.requestAudioFocus(mFocusChangeListener, audioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             focusGranted = true;
@@ -206,7 +211,6 @@ public class MainActivity extends AppCompatActivity {
         if (media != null) {
             media.release();
             media = null;
-//            Log.i("TEST", "AUDIOMANAGER: " + audioManager);
             audioManager.abandonAudioFocus(mFocusChangeListener);
             currentPosition = 0;
         }
@@ -330,9 +334,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void playCycle() {
+    private void playCycle() {              // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
         if (media != null) {
-            Log.i("TESTING", "Working...");
             seekBar.setProgress(media.getCurrentPosition());
             seekBar.setMax(media.getDuration());
             totalDurationText.setText(getMediaTime(media.getDuration()));
@@ -343,8 +346,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             };
             handler.postDelayed(runnable, 500);
-        } else {
-            Log.i("TESTING", "Media is Null...");
         }
     }
 
@@ -356,21 +357,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("TEST", "onResume - MainActivity");
         initializeSeekbar();
     }
 
     @Override
     protected void onStop () {
         super.onStop();
-        Log.i("TEST", "onStop - MainActivity");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.i("TEST", "onDestroy - MainActivity");
         releaseMediaPlayer();
-        handler.removeCallbacks(runnable);
+        handler.removeCallbacks(runnable);          // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
     }
 }

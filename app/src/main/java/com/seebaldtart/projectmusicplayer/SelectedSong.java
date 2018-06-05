@@ -1,5 +1,6 @@
 package com.seebaldtart.projectmusicplayer;
 
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.Image;
@@ -30,15 +31,7 @@ public class SelectedSong extends AppCompatActivity {
     ImageButton previousButton;
     ImageButton upButton;
     SeekBar seekBar;
-    MediaPlayer media = MainActivity.media;
-    int currentPosition;
-    SongObject currentSong;
-    ArrayList<SongObject> songList;
     ArrayList<String> songStringList;
-
-    Handler handler = MainActivity.handler;
-    Runnable runnable = MainActivity.runnable;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,24 +52,14 @@ public class SelectedSong extends AppCompatActivity {
         previousButton = findViewById(R.id.previous);
         upButton = findViewById(R.id.upButton);
         seekBar = findViewById(R.id.seekbar);
-        currentPosition = MainActivity.currentPosition;
-        currentSong = MainActivity.currentSong;
-        songList = MainActivity.songList;
         songStringList = MainActivity.songStringList;
 
         // TODO: FINISH... and use MainActivity to use a SongObject to get info to display
 
-        if (MainActivity.currentSong != null) {
-            currentSongTitle.setText(MainActivity.currentSong.getSongTitle());
-            currentArtist.setText(MainActivity.currentSong.getArtistName());
-            currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
-            currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
-
-            if (media.isPlaying()) {
-                playButton.setImageResource(R.drawable.baseline_pause_white_24);
-            } else {
-                playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
-            }
+        if (MainActivity.currentSong != null && MainActivity.media.isPlaying()) {
+            playButton.setImageResource(R.drawable.baseline_pause_white_24);
+        } else {
+            playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
         }
 
         upButton.setOnClickListener(new View.OnClickListener() {
@@ -91,17 +74,17 @@ public class SelectedSong extends AppCompatActivity {
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (MainActivity.focusGranted) {
-                    if (media == null) {        // Nothing has been played...
+                if (isFocusGranted()) {
+                    if (MainActivity.media == null) {        // Nothing has been played...
                         playMediaFromPosition(0);
                         playButton.setImageResource(R.drawable.baseline_pause_white_24);
-                    } else {        // If media has already been defined (if something has been played...)
-                        if (media.isPlaying()) {     // If media IS currently playing...
-                            media.pause();
+                    } else {        // If MainActivity.media has already been defined (if something has been played...)
+                        if (MainActivity.media.isPlaying()) {     // If MainActivity.media IS currently playing...
+                            MainActivity.media.pause();
                             playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
                         } else {
-                            if (media != null) {
-                                media.start();
+                            if (MainActivity.media != null) {
+                                MainActivity.media.start();
                                 playButton.setImageResource(R.drawable.baseline_pause_white_24);
                             }
                         }
@@ -113,15 +96,15 @@ public class SelectedSong extends AppCompatActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (media.isPlaying()) {
-                    media.stop();
-                    media.release();
-                    playMediaFromPosition(changeTrackTo(currentPosition, 1));
+                if (MainActivity.media.isPlaying()) {
+                    MainActivity.media.stop();
+                    MainActivity.media.release();
+                    playMediaFromPosition(changeTrackTo(MainActivity.currentPosition, 1));
                     playButton.setImageResource(R.drawable.baseline_pause_white_24);
                 } else {
-                    media.stop();
-                    media.release();
-                    media = MediaPlayer.create(SelectedSong.this, changeTrackTo(1));
+                    MainActivity.media.stop();
+                    MainActivity.media.release();
+                    MainActivity.media = MediaPlayer.create(SelectedSong.this, changeTrackTo(1));
                     playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
                 }
             }
@@ -130,29 +113,29 @@ public class SelectedSong extends AppCompatActivity {
         previousButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int currentDurationPosition = media.getCurrentPosition();
-                if (media != null) {
-                    if (media.isPlaying()) {
-                        media.pause();
+                int currentDurationPosition = MainActivity.media.getCurrentPosition();
+                if (MainActivity.media != null) {
+                    if (MainActivity.media.isPlaying()) {
+                        MainActivity.media.pause();
                         playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
                         if (currentDurationPosition < 3000) {       // change track
-                            media.stop();
-                            media.release();
-                            media = MediaPlayer.create(SelectedSong.this, changeTrackTo(-1));
+                            MainActivity.media.stop();
+                            MainActivity.media.release();
+                            MainActivity.media = MediaPlayer.create(SelectedSong.this, changeTrackTo(-1));
                         } else {        // restart track
-                            media.seekTo(0);
-                            media.start();
+                            MainActivity.media.seekTo(0);
+                            MainActivity.media.start();
                             playButton.setImageResource(R.drawable.baseline_pause_white_24);
                         }
-                        media.start();
+                        MainActivity.media.start();
                         playButton.setImageResource(R.drawable.baseline_pause_white_24);
                     } else {
                         if (currentDurationPosition < 3000) {       // change track
-                            media.stop();
-                            media.release();
-                            media = MediaPlayer.create(SelectedSong.this, changeTrackTo(-1));
+                            MainActivity.media.stop();
+                            MainActivity.media.release();
+                            MainActivity.media = MediaPlayer.create(SelectedSong.this, changeTrackTo(-1));
                         } else {        // restart track
-                            media.seekTo(0);
+                            MainActivity.media.seekTo(0);
                         }
                     }
                 }
@@ -162,76 +145,76 @@ public class SelectedSong extends AppCompatActivity {
         playCycle();
     }
 
+    public boolean isFocusGranted() {
+        int result = MainActivity.audioManager.requestAudioFocus(MainActivity.mFocusChangeListener, MainActivity.audioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            return true;
+        }
+        return false;
+    }
+
     public void playMediaFromPosition(int pos) {
-        media = MediaPlayer.create(MainActivity.activityContext, getMediaAtPosition(pos));
-        media.start();
+        MainActivity.media = MediaPlayer.create(MainActivity.activityContext, getMediaAtPosition(pos));
+        MainActivity.media.start();
     }
 
     public int getMediaAtPosition(int pos) {
-        currentPosition = pos;
+        MainActivity.currentPosition = pos;
         setCurrentSong(pos);
         int resID = getResources().getIdentifier(songStringList.get(pos), "raw", getPackageName());
         return resID;
     }
 
     public int changeTrackTo(int value) {
-        if (media != null) {
-            int nextPos = currentPosition + value;
+        if (MainActivity.media != null) {
+            int nextPos = MainActivity.currentPosition + value;
             if (nextPos < 0) {     // Out of bounds: reverting to bottom of list
-                currentPosition = songList.size() - 1;
+                MainActivity.currentPosition = MainActivity.songList.size() - 1;
             }
-            else if (nextPos >= 0 && nextPos < songList.size()){
-                currentPosition = nextPos;
+            else if (nextPos >= 0 && nextPos < MainActivity.songList.size()){
+                MainActivity.currentPosition = nextPos;
             }
-            else if (nextPos >= songList.size()) {     // Out of bounds: reverting back to top of list
-                currentPosition = 0;
+            else if (nextPos >= MainActivity.songList.size()) {     // Out of bounds: reverting back to top of list
+                MainActivity.currentPosition = 0;
             }
         } else {
-            currentPosition = 0;
+            MainActivity.currentPosition = 0;
         }
-        currentSong = songList.get(currentPosition);
+        MainActivity.currentSong = MainActivity.songList.get(MainActivity.currentPosition);
         currentSongTitle.setText(MainActivity.currentSong.getSongTitle());
         currentArtist.setText(MainActivity.currentSong.getArtistName());
         currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
         currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
-        int resID = getResources().getIdentifier(songStringList.get(currentPosition), "raw", getPackageName());
+        int resID = getResources().getIdentifier(songStringList.get(MainActivity.currentPosition), "raw", getPackageName());
         return resID;
     }
 
     public int changeTrackTo(int sv, int increment) {
         int startingValue = sv;
-        if (media != null) {
+        if (MainActivity.media != null) {
             int nextPos = startingValue + increment;
             if (nextPos < 0) {     // Out of bounds: reverting to bottom of list
-                currentPosition = songList.size() - 1;
+                MainActivity.currentPosition = MainActivity.songList.size() - 1;
                 startingValue = startingValue -1;
             }
-            else if (nextPos >= 0 && nextPos < songList.size()){
-                currentPosition = nextPos;
+            else if (nextPos >= 0 && nextPos < MainActivity.songList.size()){
+                MainActivity.currentPosition = nextPos;
                 startingValue = nextPos;
             }
-            else if (nextPos >= songList.size()) {     // Out of bounds: reverting back to top of list
-                currentPosition = 0;
+            else if (nextPos >= MainActivity.songList.size()) {     // Out of bounds: reverting back to top of list
+                MainActivity.currentPosition = 0;
                 startingValue = 0;
             }
         } else {
-            currentPosition = 0;
+            MainActivity.currentPosition = 0;
             startingValue = 0;
         }
-        currentSong = songList.get(currentPosition);
-        currentSongTitle.setText(MainActivity.currentSong.getSongTitle());
-        currentArtist.setText(MainActivity.currentSong.getArtistName());
-        currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
-        currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
+        MainActivity.currentSong = MainActivity.songList.get(MainActivity.currentPosition);
         return startingValue;
     }
 
     public void setCurrentSong(int pos) {
-        currentSong = songList.get(pos);
-        currentSongTitle.setText(MainActivity.currentSong.getSongTitle());
-        currentArtist.setText(MainActivity.currentSong.getArtistName());
-        currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
-        currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
+        MainActivity.currentSong = MainActivity.songList.get(pos);
     }
 
     public String getMediaTime(int time) {
@@ -249,7 +232,7 @@ public class SelectedSong extends AppCompatActivity {
     }
 
     private void initializeSeekbar() {
-        totalDurationText.setText(getMediaTime(media.getDuration()));
+        totalDurationText.setText(getMediaTime(MainActivity.media.getDuration()));
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int currentProgress;
             boolean mediaWasPlaying = false;
@@ -265,8 +248,8 @@ public class SelectedSong extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                if (media.isPlaying()) {
-                    media.pause();
+                if (MainActivity.media.isPlaying()) {
+                    MainActivity.media.pause();
                     mediaWasPlaying = true;
                 }
                 currentDurationText.setText(getMediaTime(currentProgress));
@@ -276,41 +259,40 @@ public class SelectedSong extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {
                 currentDurationText.setText(getMediaTime(currentProgress));
                 if (mediaWasPlaying) {
-                    media.seekTo(currentProgress);
-                    media.start();
+                    MainActivity.media.seekTo(currentProgress);
+                    MainActivity.media.start();
                     mediaWasPlaying = false;
                 }
             }
         });
     }
 
-    private void playCycle() {
-        if (media != null) {
-            Log.i("TESTING", "Working...");
+    private void playCycle() {          // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
+        if (MainActivity.media != null) {
             seekBar.setProgress(MainActivity.media.getCurrentPosition());
-            seekBar.setMax(media.getDuration());
-            totalDurationText.setText(getMediaTime(media.getDuration()));
-            runnable = new Runnable() {
+            seekBar.setMax(MainActivity.media.getDuration());
+            totalDurationText.setText(getMediaTime(MainActivity.media.getDuration()));
+            currentSongTitle.setText(MainActivity.currentSong.getSongTitle());
+            currentArtist.setText(MainActivity.currentSong.getArtistName());
+            currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
+            currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
+            MainActivity.runnable = new Runnable() {
                 @Override
                 public void run() {
                     playCycle();
                 }
             };
-            handler.postDelayed(runnable, 500);
-        } else {
-            Log.i("TESTING", "Media is Null...");
+            MainActivity.handler.postDelayed(MainActivity.runnable, 500);
         }
     }
 
     @Override
     protected void onStop () {
         super.onStop();
-        Log.i("TEST", "onStop - SelectedSong");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.i("TEST", "onDestroy - SelectedSong");
     }
 }

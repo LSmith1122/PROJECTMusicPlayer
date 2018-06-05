@@ -131,7 +131,7 @@
                     android:id="@+id/current_duration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0:00"
+                    android:text="00:00"
                     android:textColor="@android:color/white"
                     android:layout_below="@+id/seekbar"
                     android:layout_alignLeft="@+id/seekbar"/>
@@ -140,7 +140,7 @@
                     android:id="@+id/total_duration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0:00"
+                    android:text="00:00"
                     android:textColor="@android:color/white"
                     android:layout_below="@+id/seekbar"
                     android:layout_alignRight="@+id/seekbar"/>
@@ -161,26 +161,47 @@
             android:gravity="center"
             android:layout_marginBottom="8dp">
 
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg">
+
                 <ImageButton
                     android:id="@+id/previous"
                     android:layout_width="100dp"
                     android:layout_height="60dp"
                     android:src="@drawable/baseline_skip_previous_white_24"
-                    android:background="@drawable/button_bg"/>
+                    android:background="?android:attr/selectableItemBackground"/>
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg">
 
                 <ImageButton
                     android:id="@+id/play"
                     android:layout_width="100dp"
                     android:layout_height="60dp"
                     android:src="@drawable/baseline_play_arrow_white_24"
-                    android:background="@drawable/button_bg"/>
+                    android:background="?android:attr/selectableItemBackground"/>
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_bg">
 
                 <ImageButton
                     android:id="@+id/next"
                     android:layout_width="100dp"
                     android:layout_height="60dp"
-                    android:src="@drawable/baseline_fast_forward_white_24"
-                    android:background="@drawable/button_bg"/>
+                    android:src="@drawable/baseline_skip_next_white_24"
+                    android:background="?android:attr/selectableItemBackground"/>
+
+            </FrameLayout>
 
         </LinearLayout>
 
