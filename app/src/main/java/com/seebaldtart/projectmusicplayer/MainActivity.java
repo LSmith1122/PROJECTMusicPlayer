@@ -14,13 +14,13 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     static int currentPosition = 0;        // Current Playback Position
+    static int cycle = 0;
     static ArrayList<String> songStringList = new ArrayList<>();
     static ArrayList<SongObject> songList = new ArrayList<>();
     static MediaPlayer media;
@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     static Context activityContext;
     static SongObject currentSong;
     static boolean focusGranted;
+    static boolean wasPlaying;
 
     ImageButton playButton;
     ImageButton nextButton;
@@ -170,17 +171,28 @@ public class MainActivity extends AppCompatActivity {
         playCycle();
     }
 
+    public void playNextSong() {
+        media.stop();
+        media.release();
+        playMediaFromPosition(changeTrackTo(currentPosition, 1));
+        playButton.setImageResource(R.drawable.baseline_pause_white_24);
+    }
+
+    public void repeatCurrentSong() {
+        media.pause();
+        media.seekTo(0);
+        media.start();
+        playButton.setImageResource(R.drawable.baseline_pause_white_24);
+    }
+
     MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mp) {
             int capOff = songList.size() - 1;
-            if (currentPosition < capOff) {
-                media.stop();
-                media.release();
-                playMediaFromPosition(changeTrackTo(currentPosition, 1));
-                playButton.setImageResource(R.drawable.baseline_pause_white_24);
-            } else {
-                releaseMediaPlayer();
+            if (cycle == 0) {           // Repeat List of songs...
+                playNextSong();
+            } else {            // Repeat current song only...
+                repeatCurrentSong();
             }
         }
     };
@@ -190,9 +202,14 @@ public class MainActivity extends AppCompatActivity {
             if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
                 releaseMediaPlayer();
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                media.pause();
+                if (media.isPlaying()) {
+                    media.pause();
+                    wasPlaying = true;
+                }
             } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                media.start();
+                if (wasPlaying) {
+                    media.start();
+                }
             }
         }
     };
@@ -339,13 +356,14 @@ public class MainActivity extends AppCompatActivity {
             seekBar.setProgress(media.getCurrentPosition());
             seekBar.setMax(media.getDuration());
             totalDurationText.setText(getMediaTime(media.getDuration()));
+            media.setOnCompletionListener(mCompletionListener);
             runnable = new Runnable() {
                 @Override
                 public void run() {
                     playCycle();
                 }
             };
-            handler.postDelayed(runnable, 500);
+            handler.postDelayed(runnable, 100);
         }
     }
 
@@ -357,6 +375,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (media != null) {
+            if (!media.isPlaying()) {
+                wasPlaying = false;
+            } else {
+                wasPlaying = true;
+            }
+        }
         initializeSeekbar();
     }
 

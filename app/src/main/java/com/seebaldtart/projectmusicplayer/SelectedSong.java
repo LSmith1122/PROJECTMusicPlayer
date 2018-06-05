@@ -14,6 +14,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -30,16 +31,13 @@ public class SelectedSong extends AppCompatActivity {
     ImageButton nextButton;
     ImageButton previousButton;
     ImageButton upButton;
+    ImageButton cycleButton;
     SeekBar seekBar;
-    ArrayList<String> songStringList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.selected_song_activity);
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        Log.i("TEST", "onCreate - SelectedSong");
 
         currentSongTitle = findViewById(R.id.song_title);
         currentArtist = findViewById(R.id.artist_name);
@@ -52,9 +50,28 @@ public class SelectedSong extends AppCompatActivity {
         previousButton = findViewById(R.id.previous);
         upButton = findViewById(R.id.upButton);
         seekBar = findViewById(R.id.seekbar);
-        songStringList = MainActivity.songStringList;
+        cycleButton = findViewById(R.id.cycle);
 
-        // TODO: FINISH... and use MainActivity to use a SongObject to get info to display
+        if (MainActivity.cycle == 0) {
+            cycleButton.setImageResource(R.drawable.baseline_repeat_white_24);
+        } else {
+            cycleButton.setImageResource(R.drawable.baseline_repeat_one_white_24);
+        }
+
+        cycleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MainActivity.cycle++;
+                if (MainActivity.cycle > 1) {
+                    MainActivity.cycle = 0;
+                }
+                if (MainActivity.cycle == 0) {
+                    cycleButton.setImageResource(R.drawable.baseline_repeat_white_24);
+                } else {
+                    cycleButton.setImageResource(R.drawable.baseline_repeat_one_white_24);
+                }
+            }
+        });
 
         if (MainActivity.currentSong != null && MainActivity.media.isPlaying()) {
             playButton.setImageResource(R.drawable.baseline_pause_white_24);
@@ -161,7 +178,7 @@ public class SelectedSong extends AppCompatActivity {
     public int getMediaAtPosition(int pos) {
         MainActivity.currentPosition = pos;
         setCurrentSong(pos);
-        int resID = getResources().getIdentifier(songStringList.get(pos), "raw", getPackageName());
+        int resID = getResources().getIdentifier(MainActivity.songStringList.get(pos), "raw", getPackageName());
         return resID;
     }
 
@@ -185,7 +202,7 @@ public class SelectedSong extends AppCompatActivity {
         currentArtist.setText(MainActivity.currentSong.getArtistName());
         currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
         currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
-        int resID = getResources().getIdentifier(songStringList.get(MainActivity.currentPosition), "raw", getPackageName());
+        int resID = getResources().getIdentifier(MainActivity.songStringList.get(MainActivity.currentPosition), "raw", getPackageName());
         return resID;
     }
 
@@ -195,7 +212,7 @@ public class SelectedSong extends AppCompatActivity {
             int nextPos = startingValue + increment;
             if (nextPos < 0) {     // Out of bounds: reverting to bottom of list
                 MainActivity.currentPosition = MainActivity.songList.size() - 1;
-                startingValue = startingValue -1;
+                startingValue = startingValue - 1;
             }
             else if (nextPos >= 0 && nextPos < MainActivity.songList.size()){
                 MainActivity.currentPosition = nextPos;
@@ -267,6 +284,12 @@ public class SelectedSong extends AppCompatActivity {
         });
     }
 
+    public String getSelectedTrackText(SongObject song) {
+        String songTitle = song.getSongTitle();
+        String artistName = song.getArtistName();
+        return songTitle + " - " + artistName;
+    }
+
     private void playCycle() {          // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
         if (MainActivity.media != null) {
             seekBar.setProgress(MainActivity.media.getCurrentPosition());
@@ -276,13 +299,14 @@ public class SelectedSong extends AppCompatActivity {
             currentArtist.setText(MainActivity.currentSong.getArtistName());
             currentAlbum.setText(MainActivity.currentSong.getAlbumTitle());
             currentAlbumArt.setImageBitmap(MainActivity.currentSong.getBitmap());
+            MainActivity.selectedTrack.setText(getSelectedTrackText(MainActivity.currentSong));
             MainActivity.runnable = new Runnable() {
                 @Override
                 public void run() {
                     playCycle();
                 }
             };
-            MainActivity.handler.postDelayed(MainActivity.runnable, 500);
+            MainActivity.handler.postDelayed(MainActivity.runnable, 100);
         }
     }
 
