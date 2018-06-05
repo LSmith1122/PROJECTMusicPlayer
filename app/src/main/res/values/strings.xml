@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">PROJECT: MusicPlayer</string>
+    <string name="now_playing">Now Playing...</string>
+    <string name="album">Album</string>
+    <string name="track">Track</string>
+    <string name="artist">Artist</string>
+    <string name="genre">Genre</string>
+
+</resources>
