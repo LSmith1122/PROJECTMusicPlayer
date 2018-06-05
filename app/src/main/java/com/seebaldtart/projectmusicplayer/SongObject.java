@@ -1,14 +1,9 @@
 package com.seebaldtart.projectmusicplayer;
-
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.util.Log;
-import android.widget.LinearLayout;
-
 import java.lang.reflect.Field;
-
 public class SongObject {
     private Field mField;
     private String mSongTitle;
@@ -17,16 +12,10 @@ public class SongObject {
     private int resID;
     Bitmap bitmap;
     private boolean hasImage = false;
-
     public SongObject(Field field) {
         mField = field;
         compileData();
     }
-
-    public int getResID() {
-        return resID;
-    }
-
     private void compileData() {
         resID = MainActivity.activityContext.getResources().getIdentifier(mField.getName(), "raw", MainActivity.activityContext.getPackageName());
         MediaMetadataRetriever metaRet = new MediaMetadataRetriever();
@@ -35,11 +24,7 @@ public class SongObject {
         mArtistName = metaRet.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
         mSongTitle = metaRet.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
         mAlbumTitle = metaRet.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
-
         byte [] data = metaRet.getEmbeddedPicture();
-        //coverart is an Imageview object
-
-        // convert the byte array to a bitmap
         if(data != null) {
             hasImage = true;
             bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
@@ -48,7 +33,6 @@ public class SongObject {
             hasImage = false;
         }
     }
-
     public String getSongTitle() {
         return mSongTitle;
     }
@@ -58,11 +42,9 @@ public class SongObject {
     public String getAlbumTitle() {
         return mAlbumTitle;
     }
-
     public Bitmap getBitmap() {
         return bitmap;
     }
-
     public boolean hasImage() {
         return hasImage;
     }

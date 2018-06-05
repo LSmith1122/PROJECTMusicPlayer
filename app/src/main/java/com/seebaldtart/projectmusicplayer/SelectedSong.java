@@ -1,25 +1,16 @@
 package com.seebaldtart.projectmusicplayer;
-
-import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
-import android.media.Image;
 import android.media.MediaPlayer;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-
 public class SelectedSong extends AppCompatActivity {
     TextView currentSongTitle;
     TextView currentArtist;
@@ -33,12 +24,10 @@ public class SelectedSong extends AppCompatActivity {
     ImageButton upButton;
     ImageButton cycleButton;
     SeekBar seekBar;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.selected_song_activity);
-
         currentSongTitle = findViewById(R.id.song_title);
         currentArtist = findViewById(R.id.artist_name);
         currentAlbum = findViewById(R.id.album_title);
@@ -51,13 +40,11 @@ public class SelectedSong extends AppCompatActivity {
         upButton = findViewById(R.id.upButton);
         seekBar = findViewById(R.id.seekbar);
         cycleButton = findViewById(R.id.cycle);
-
         if (MainActivity.cycle == 0) {
             cycleButton.setImageResource(R.drawable.baseline_repeat_white_24);
         } else {
             cycleButton.setImageResource(R.drawable.baseline_repeat_one_white_24);
         }
-
         cycleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -72,13 +59,11 @@ public class SelectedSong extends AppCompatActivity {
                 }
             }
         });
-
         if (MainActivity.currentSong != null && MainActivity.media.isPlaying()) {
             playButton.setImageResource(R.drawable.baseline_pause_white_24);
         } else {
             playButton.setImageResource(R.drawable.baseline_play_arrow_white_24);
         }
-
         upButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -87,7 +72,6 @@ public class SelectedSong extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -109,7 +93,6 @@ public class SelectedSong extends AppCompatActivity {
                 }
             }
         });
-
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -126,7 +109,6 @@ public class SelectedSong extends AppCompatActivity {
                 }
             }
         });
-
         previousButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -161,7 +143,6 @@ public class SelectedSong extends AppCompatActivity {
         initializeSeekbar();
         playCycle();
     }
-
     public boolean isFocusGranted() {
         int result = MainActivity.audioManager.requestAudioFocus(MainActivity.mFocusChangeListener, MainActivity.audioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -169,19 +150,16 @@ public class SelectedSong extends AppCompatActivity {
         }
         return false;
     }
-
     public void playMediaFromPosition(int pos) {
         MainActivity.media = MediaPlayer.create(MainActivity.activityContext, getMediaAtPosition(pos));
         MainActivity.media.start();
     }
-
     public int getMediaAtPosition(int pos) {
         MainActivity.currentPosition = pos;
         setCurrentSong(pos);
         int resID = getResources().getIdentifier(MainActivity.songStringList.get(pos), "raw", getPackageName());
         return resID;
     }
-
     public int changeTrackTo(int value) {
         if (MainActivity.media != null) {
             int nextPos = MainActivity.currentPosition + value;
@@ -205,7 +183,6 @@ public class SelectedSong extends AppCompatActivity {
         int resID = getResources().getIdentifier(MainActivity.songStringList.get(MainActivity.currentPosition), "raw", getPackageName());
         return resID;
     }
-
     public int changeTrackTo(int sv, int increment) {
         int startingValue = sv;
         if (MainActivity.media != null) {
@@ -229,11 +206,9 @@ public class SelectedSong extends AppCompatActivity {
         MainActivity.currentSong = MainActivity.songList.get(MainActivity.currentPosition);
         return startingValue;
     }
-
     public void setCurrentSong(int pos) {
         MainActivity.currentSong = MainActivity.songList.get(pos);
     }
-
     public String getMediaTime(int time) {
         int min = (time / 1000) / 60;
         int sec = (time / 1000) % 60;
@@ -247,7 +222,6 @@ public class SelectedSong extends AppCompatActivity {
         String seconds = formatter.format(sec);
         return minutes + ":" + seconds;
     }
-
     private void initializeSeekbar() {
         totalDurationText.setText(getMediaTime(MainActivity.media.getDuration()));
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -262,7 +236,6 @@ public class SelectedSong extends AppCompatActivity {
                 }
                 currentDurationText.setText(getMediaTime(progress));
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 if (MainActivity.media.isPlaying()) {
@@ -271,7 +244,6 @@ public class SelectedSong extends AppCompatActivity {
                 }
                 currentDurationText.setText(getMediaTime(currentProgress));
             }
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 currentDurationText.setText(getMediaTime(currentProgress));
@@ -283,13 +255,11 @@ public class SelectedSong extends AppCompatActivity {
             }
         });
     }
-
     public String getSelectedTrackText(SongObject song) {
         String songTitle = song.getSongTitle();
         String artistName = song.getArtistName();
         return songTitle + " - " + artistName;
     }
-
     private void playCycle() {          // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
         if (MainActivity.media != null) {
             seekBar.setProgress(MainActivity.media.getCurrentPosition());
@@ -309,12 +279,10 @@ public class SelectedSong extends AppCompatActivity {
             MainActivity.handler.postDelayed(MainActivity.runnable, 100);
         }
     }
-
     @Override
     protected void onStop () {
         super.onStop();
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();

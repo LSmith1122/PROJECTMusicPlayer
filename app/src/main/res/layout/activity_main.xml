@@ -8,17 +8,14 @@
     tools:context=".MainActivity"
     android:orientation="vertical"
     android:background="@color/colorPrimary">
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/button_bg"
         android:layout_marginBottom="8dp">
-
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-
             <TextView
                 android:id="@+id/current_song_text"
                 android:layout_width="match_parent"
@@ -30,138 +27,90 @@
                 android:padding="8dp"
                 android:layout_centerHorizontal="true"
                 android:background="?android:attr/selectableItemBackground"/>
-
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
-                android:src="@drawable/baseline_play_arrow_white_18"
+                android:src="@drawable/baseline_keyboard_arrow_right_white_24"
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
                 android:layout_marginRight="16dp"/>
-
         </RelativeLayout>
-
     </FrameLayout>
-
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
-
         <ListView
             android:id="@+id/item_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:divider="@null"
-            android:dividerHeight="1dp"/>
-        <!-- @android:divider and @android:dividerHeight was retrieved from https://stackoverflow.com/questions/1914477/how-do-i-remove-lines-between-listviews-on-android -->
-
+            android:dividerHeight="1dp"/>       <!-- @android:divider and @android:dividerHeight was retrieved from https://stackoverflow.com/questions/1914477/how-do-i-remove-lines-between-listviews-on-android -->
     </RelativeLayout>
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp">
-
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"/>
-
             <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="8">
-
                 <SeekBar
                     android:id="@+id/seekbar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal" />
-
                 <TextView
                     android:id="@+id/current_duration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="00:00"
-                    android:textColor="@android:color/white"
-                    android:layout_below="@+id/seekbar"
+                    style="@style/default_time"
                     android:layout_alignLeft="@+id/seekbar"/>
-
                 <TextView
                     android:id="@+id/total_duration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="00:00"
-                    android:textColor="@android:color/white"
-                    android:layout_below="@+id/seekbar"
+                    style="@style/default_time"
                     android:layout_alignRight="@+id/seekbar"/>
-
             </RelativeLayout>
-
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"/>
-
         </LinearLayout>
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
             android:layout_marginBottom="8dp">
-
             <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg">
-
+                style="@style/main_action_buttons_framelayout">
                 <ImageButton
                     android:id="@+id/previous"
-                    android:layout_width="100dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/baseline_skip_previous_white_24"
-                    android:background="?android:attr/selectableItemBackground"/>
-
+                    style="@style/main_action_buttons"
+                    android:src="@drawable/baseline_skip_previous_white_24"/>
             </FrameLayout>
-
             <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg">
-
+                style="@style/main_action_buttons_framelayout">
                 <ImageButton
                     android:id="@+id/play"
-                    android:layout_width="100dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/baseline_play_arrow_white_24"
-                    android:background="?android:attr/selectableItemBackground"/>
-
+                    style="@style/main_action_buttons"
+                    android:src="@drawable/baseline_play_arrow_white_24"/>
             </FrameLayout>
-
             <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/button_bg">
-
+                style="@style/main_action_buttons_framelayout">
                 <ImageButton
                     android:id="@+id/next"
-                    android:layout_width="100dp"
-                    android:layout_height="60dp"
-                    android:src="@drawable/baseline_skip_next_white_24"
-                    android:background="?android:attr/selectableItemBackground"/>
-
+                    style="@style/main_action_buttons"
+                    android:src="@drawable/baseline_skip_next_white_24"/>
             </FrameLayout>
-
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

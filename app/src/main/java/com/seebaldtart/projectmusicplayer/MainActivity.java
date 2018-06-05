@@ -1,5 +1,4 @@
 package com.seebaldtart.projectmusicplayer;
-
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -7,7 +6,6 @@ import android.media.MediaPlayer;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageButton;
@@ -17,7 +15,6 @@ import android.widget.TextView;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-
 public class MainActivity extends AppCompatActivity {
     static int currentPosition = 0;        // Current Playback Position
     static int cycle = 0;
@@ -30,7 +27,6 @@ public class MainActivity extends AppCompatActivity {
     static SongObject currentSong;
     static boolean focusGranted;
     static boolean wasPlaying;
-
     ImageButton playButton;
     ImageButton nextButton;
     ImageButton previousButton;
@@ -38,16 +34,13 @@ public class MainActivity extends AppCompatActivity {
     TextView currentDurationText;
     TextView totalDurationText;
     SeekBar seekBar;
-
     static Runnable runnable;
     static Handler handler;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         activityContext = getApplicationContext();
-
         playButton = findViewById(R.id.play);
         nextButton = findViewById(R.id.next);
         previousButton = findViewById(R.id.previous);
@@ -55,10 +48,8 @@ public class MainActivity extends AppCompatActivity {
         currentDurationText = findViewById(R.id.current_duration);
         totalDurationText = findViewById(R.id.total_duration);
         seekBar = findViewById(R.id.seekbar);
-
         audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         handler = new Handler();
-
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -80,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -97,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
         previousButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -129,22 +118,18 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
         fields = R.raw.class.getFields();
         for (int count = 0; count < fields.length; count++) {
             songList.add(new SongObject(fields[count]));
             songStringList.add(fields[count].getName());
         }
-
         AudioAdapter adapter = new AudioAdapter(this, songList);
         ListView listView = findViewById(R.id.item_list);
         listView.setAdapter(adapter);
-
         if (media == null) {
             media = MediaPlayer.create(MainActivity.this, getMediaAtPosition(0));
             media.setOnCompletionListener(mCompletionListener);
         }
-
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -158,7 +143,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
         selectedTrack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -166,25 +150,21 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
         initializeSeekbar();
         playCycle();
     }
-
     public void playNextSong() {
         media.stop();
         media.release();
         playMediaFromPosition(changeTrackTo(currentPosition, 1));
         playButton.setImageResource(R.drawable.baseline_pause_white_24);
     }
-
     public void repeatCurrentSong() {
         media.pause();
         media.seekTo(0);
         media.start();
         playButton.setImageResource(R.drawable.baseline_pause_white_24);
     }
-
     MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mp) {
@@ -213,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
     public boolean isFocusGranted() {
         int result = audioManager.requestAudioFocus(mFocusChangeListener, audioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -223,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
         focusGranted = false;
         return false;
     }
-
     public static void releaseMediaPlayer () {
         if (media != null) {
             media.release();
@@ -232,19 +210,16 @@ public class MainActivity extends AppCompatActivity {
             currentPosition = 0;
         }
     }
-
     public void playMediaFromPosition(int pos) {
         media = MediaPlayer.create(MainActivity.this, getMediaAtPosition(pos));
         media.start();
     }
-
     public int getMediaAtPosition(int pos) {
         currentPosition = pos;
         setCurrentSong(pos);
         int resID = getResources().getIdentifier(songStringList.get(pos), "raw", getPackageName());
         return resID;
     }
-
     public int changeTrackTo(int value) {
         if (media != null) {
             int nextPos = currentPosition + value;
@@ -265,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
         int resID = getResources().getIdentifier(songStringList.get(currentPosition), "raw", getPackageName());
         return resID;
     }
-
     public int changeTrackTo(int sv, int increment) {
         int startingValue = sv;
         if (media != null) {
@@ -290,18 +264,15 @@ public class MainActivity extends AppCompatActivity {
         selectedTrack.setText(getSelectedTrackText(currentSong));
         return startingValue;
     }
-
     public void setCurrentSong(int pos) {
         currentSong = songList.get(pos);
         selectedTrack.setText(getSelectedTrackText(currentSong));
     }
-
     public String getSelectedTrackText(SongObject song) {
         String songTitle = song.getSongTitle();
         String artistName = song.getArtistName();
         return songTitle + " - " + artistName;
     }
-
     public String getMediaTime(int time) {
         int min = (time / 1000) / 60;
         int sec = (time / 1000) % 60;
@@ -315,7 +286,6 @@ public class MainActivity extends AppCompatActivity {
         String seconds = formatter.format(sec);
         return minutes + ":" + seconds;
     }
-
     private void initializeSeekbar() {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int currentProgress;
@@ -329,7 +299,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 currentDurationText.setText(getMediaTime(progress));
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 if (media.isPlaying()) {
@@ -338,7 +307,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 currentDurationText.setText(getMediaTime(currentProgress));
             }
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 currentDurationText.setText(getMediaTime(currentProgress));
@@ -350,7 +318,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
     private void playCycle() {              // Retrieved from: https://www.youtube.com/watch?v=HB3DoZh1QWU
         if (media != null) {
             seekBar.setProgress(media.getCurrentPosition());
@@ -366,12 +333,10 @@ public class MainActivity extends AppCompatActivity {
             handler.postDelayed(runnable, 100);
         }
     }
-
     @Override
     protected void onPause() {
         super.onPause();
     }
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -384,12 +349,10 @@ public class MainActivity extends AppCompatActivity {
         }
         initializeSeekbar();
     }
-
     @Override
     protected void onStop () {
         super.onStop();
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
