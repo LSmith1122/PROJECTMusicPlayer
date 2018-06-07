@@ -20,11 +20,6 @@
         <activity
             android:name=".SelectedSong"
             android:label="Details"
-            android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.seebaldtart.projectmusicplayer.MainActivity"/>
-        </activity>
+            android:screenOrientation="portrait"/>
     </application>
 </manifest>
