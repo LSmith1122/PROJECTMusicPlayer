@@ -13,7 +13,7 @@
         android:layout_height="@dimen/list_item_height"
         android:minHeight="@dimen/list_item_height"
         android:layout_margin="4dp"
-        android:src="@drawable/default_icon_song_album" />
+        android:src="@drawable/default_icon_song_album1" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
