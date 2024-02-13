@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">PROJECT: MusicPlayer</string>
-    <string name="now_playing">Now Playing...</string>
+    <string name="now_playing">Now Playing…</string>
     <string name="album">Album</string>
     <string name="track">Track</string>
     <string name="artist">Artist</string>
@@ -11,4 +11,8 @@
     <string name="default_song_title">Song Title</string>
     <string name="default_artist_name">Artist Name</string>
     <string name="default_album_title">Album Title</string>
+    <string name="title_activity_music_player">MusicPlayerActivity</string>
+    <string name="content_description_play_pause">Play/Pause</string>
+    <string name="content_description_skip_previous">Skip/Previous</string>
+    <string name="content_description_skip_next">Skip/Next</string>
 </resources>

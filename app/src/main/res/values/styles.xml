@@ -1,17 +1,17 @@
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
+<!--    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">-->
+<!--        &lt;!&ndash; Customize your theme here. &ndash;&gt;-->
+<!--        <item name="colorPrimary">@color/colorPrimary</item>-->
+<!--        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>-->
+<!--        <item name="colorAccent">@color/colorAccent</item>-->
+<!--    </style>-->
     <style name="custom_item_textview">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:minHeight">@dimen/text_min_height</item>
         <item name="android:layout_gravity">center_vertical</item>
         <item name="android:textColor">@android:color/white</item>
-        <item name="android:layout_marginLeft">@dimen/text_horizontal_distance</item>
+        <item name="android:layout_marginLeft">@dimen/audio_list_item_image_separator</item>
     </style>
     <style name="main_action_buttons_framelayout">
         <item name="android:layout_width">wrap_content</item>
