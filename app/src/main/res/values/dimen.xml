@@ -2,6 +2,6 @@
 <resources>
     <dimen name="list_item_height">65dp</dimen>
     <dimen name="text_min_height">32dp</dimen>
-    <dimen name="text_horizontal_distance">8dp</dimen>
+    <dimen name="audio_list_item_image_separator">8dp</dimen>
     <dimen name="text_vertical_distance">8dp</dimen>
 </resources>

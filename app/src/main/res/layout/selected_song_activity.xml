@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
     android:background="@color/colorPrimary"
-    tools:context=".SelectedSong"
+    tools:context=".ui.activities.SelectedSongActivity"
     android:orientation="vertical">
     <RelativeLayout
         android:layout_width="match_parent"
