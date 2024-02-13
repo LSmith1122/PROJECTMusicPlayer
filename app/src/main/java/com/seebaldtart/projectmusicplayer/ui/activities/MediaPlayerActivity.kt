@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import java.lang.RuntimeException
+import kotlin.jvm.optionals.getOrNull
 
 @AndroidEntryPoint
 class MusicPlayerActivity : ComponentActivity() {
@@ -60,7 +62,7 @@ class MusicPlayerActivity : ComponentActivity() {
                 playlistViewModel = hiltViewModel<AudioPlayListViewModel>()
                 musicPlayerViewModel = hiltViewModel<MusicPlayerStateViewModel>()
                 musicPlayerViewModel.setDelegate(object : MusicPlayerStateViewModel.Delegate {
-                    override fun onTrackAutomaticallyUpdated(track: AudioTrack) {
+                    override fun onTrackAutomaticallyUpdated(track: AudioTrack?) {
                         playlistViewModel.onAudioTrackSelected(track)
                     }
 
@@ -79,11 +81,15 @@ class MusicPlayerActivity : ComponentActivity() {
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
+                ) { _ ->
                     Column {
                         MainContent(
                             this,
-                            tracks = remember { mutableStateOf(playlistViewModel.stream().value) },
+                            tracks = playlistViewModel.stream().collectAsState(),
+                            selectedTrackIDState = playlistViewModel
+                                .selectedTrack
+                                .map { it.getOrNull()?.id ?: -1 }
+                                .collectAsState(-1),
                             onAudioTrackSelected = { track ->
                                 playlistViewModel.onAudioTrackSelected(track)
                                 musicPlayerViewModel.onAudioTrackSelected(track)
@@ -155,6 +161,7 @@ class MusicPlayerActivity : ComponentActivity() {
 fun MainContent(
     scope: ColumnScope,
     tracks: State<List<AudioTrack>>,
+    selectedTrackIDState: State<Long>,
     onAudioTrackSelected: (AudioTrack) -> Unit,
     onAudioTrackShown: (AudioTrack) -> Unit
 ) {
@@ -174,12 +181,13 @@ fun MainContent(
                 contentType = { track -> track }
             ) { track ->
                 AudioTrackListItem(
-                    track.title,
-                    track.artistName,
-                    track.albumName,
-                    track.duration,
-                    track.getThumbnailBitmap()
-                        .collectAsState(),
+                    id = track.id,
+                    title = track.title,
+                    artist = track.artistName,
+                    album = track.albumName,
+                    duration = track.duration,
+                    imageState = track.getThumbnailBitmap().collectAsState(),
+                    selectedIDState = selectedTrackIDState,
                     onAudioTrackSelected = {
                         onAudioTrackSelected.invoke(track)
                     },
@@ -198,7 +206,7 @@ fun MainContentPreview() {
     PROJECTMusicPlayerTheme {
         Scaffold(
             modifier = Modifier.fillMaxSize()
-        ) { innerPadding ->
+        ) { _ ->
             Column {
                 MainContent(
                     scope = this,
@@ -220,6 +228,7 @@ fun MainContentPreview() {
                             AudioTrack(14, 0, "Title",  -1, "John Doe", "Example Album", 300, null, ""),
                         ))
                     },
+                    selectedTrackIDState = remember { mutableLongStateOf(-1) },
                     onAudioTrackSelected = {},
                     onAudioTrackShown = {}
                 )

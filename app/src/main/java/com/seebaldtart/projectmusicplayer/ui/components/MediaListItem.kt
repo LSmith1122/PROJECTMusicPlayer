@@ -5,6 +5,7 @@ package com.seebaldtart.projectmusicplayer.ui.components
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -17,12 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,10 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,23 +49,41 @@ import kotlin.jvm.optionals.getOrNull
 
 @Composable
 fun AudioTrackListItem (
+    id: Long,
     title: String,
     artist: String,
     album: String,
     duration: Int,
     imageState: State<Optional<Bitmap>>,
+    selectedIDState: State<Long>,
     onAudioTrackSelected: () -> Unit,
     onViewShown: () -> Unit
 ) {
     PROJECTMusicPlayerTheme {
+        val selectedID by selectedIDState
+        val selectedBackground = R.color.colorPrimary
+        val unSelectedBackground = android.R.color.transparent
+        val background by remember(selectedID) {
+            mutableIntStateOf(
+                if (selectedID == id) {
+                    selectedBackground
+                } else {
+                    unSelectedBackground
+                }
+            )
+        }
+
         Row(
             modifier = Modifier
                 .height(dimensionResource(R.dimen.list_item_height))
                 .fillMaxWidth()
+                .background(colorResource(background))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = LocalIndication.current,
-                    onClick = { onAudioTrackSelected.invoke() }
+                    onClick = {
+                        onAudioTrackSelected.invoke()
+                    }
                 )
                 .padding(bottom = 1.dp)
         ) {
@@ -159,11 +178,13 @@ fun AudioTrackListItem (
 fun AudioTrackItem_Preview() {
     PROJECTMusicPlayerTheme {
         AudioTrackListItem(
-            "Title",
-            "Artist",
-            "Album",
-            300,
+            id = -1,
+            title = "Title",
+            artist = "Artist",
+            album = "Album",
+            duration = 300,
             imageState = remember { mutableStateOf(Optional.empty<Bitmap>()) },
+            selectedIDState = remember { mutableLongStateOf(-1) },
             onAudioTrackSelected = {},
             onViewShown = {}
         )
