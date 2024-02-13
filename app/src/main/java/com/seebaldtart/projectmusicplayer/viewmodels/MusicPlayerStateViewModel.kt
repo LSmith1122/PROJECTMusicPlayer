@@ -24,18 +24,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.Closeable
-import java.lang.RuntimeException
 import java.util.Optional
 import javax.inject.Inject
 import kotlin.jvm.optionals.getOrNull
@@ -65,7 +61,6 @@ class MusicPlayerStateViewModel @Inject constructor(
                 AudioManager.AUDIOFOCUS_LOSS -> releaseMediaPlayerAndFocus()
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> pauseAndPersistState()
-
                 AudioManager.AUDIOFOCUS_GAIN -> resumePreviousState()
             }
         }
@@ -78,15 +73,16 @@ class MusicPlayerStateViewModel @Inject constructor(
             }
         }
     val nowPlayingTrack: Flow<Optional<AudioTrack>> =
-        combine(trackState, currentAudioTrack) { state, trackOptional, ->
-            if (isMediaPlaying() || state == TrackState.PAUSED) {
+        combine(trackState, currentAudioTrack) { state, trackOptional ->
+            val optional = if (isMediaPlaying() || state == TrackState.PAUSED) {
                 val track = trackOptional.getOrNull()
                 Optional.ofNullable(track)
             } else {
                 Optional.empty()
             }
-        }.distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.Lazily, Optional.empty())
+            delegate?.onTrackAutomaticallyUpdated(optional.getOrNull())
+            optional
+        }.stateIn(viewModelScope, SharingStarted.Lazily, Optional.empty())
     val nowPlayingTrackProgress: Flow<Int> =
         flow {
             while (currentCoroutineContext().isActive) {
@@ -441,6 +437,6 @@ class MusicPlayerStateViewModel @Inject constructor(
 
     interface Delegate {
         fun onError(error: PlaybackError)
-        fun onTrackAutomaticallyUpdated(track: AudioTrack)
+        fun onTrackAutomaticallyUpdated(track: AudioTrack?)
     }
 }

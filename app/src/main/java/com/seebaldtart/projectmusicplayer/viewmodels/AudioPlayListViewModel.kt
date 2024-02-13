@@ -36,8 +36,7 @@ class AudioPlayListViewModel @Inject constructor(
     private val groupSelection = MutableStateFlow<Optional<AudioSelectionData>>(Optional.empty())
 
     /** The [StateFlow] for the currently selected [AudioTrack] */
-    val selectedTrack: StateFlow<Optional<AudioTrack>>
-        get() = currentlySelectedTrack.asStateFlow()
+    val selectedTrack: StateFlow<Optional<AudioTrack>> = currentlySelectedTrack.asStateFlow()
     /** The [StateFlow] for the currently selected [AudioTrackFilter] */
     val trackFilters: StateFlow<AudioTrackFilter>
         get() = selectedTrackFilter.asStateFlow()
@@ -49,8 +48,8 @@ class AudioPlayListViewModel @Inject constructor(
     fun stream(): StateFlow<List<AudioTrack>> = repository.stream()
 
     /** Calling this method will notify the ViewModel that a specific [AudioTrack] and should be played. */
-    fun onAudioTrackSelected(track: AudioTrack) {
-        currentlySelectedTrack.update { Optional.of(track) }
+    fun onAudioTrackSelected(track: AudioTrack?) {
+        currentlySelectedTrack.update { Optional.ofNullable(track) }
     }
 
     /** Calling this method will display all [AudioTrack]s, grouped by their [GroupSelectionState]. */
