@@ -12,6 +12,9 @@ or available for others to consume, copy, revise, publish nor distribute in any 
 
 ---
 
+### Demo
+![PROJECTMusicPlayer_demo_smaller](https://github.com/LSmith1122/PROJECTMusicPlayer/assets/37247281/b40ccb5a-bcab-449a-b486-9caac31df205)
+
 ### Core Functions / Implementations
 - The primary language of this project has been migrated from Java to Kotlin
 - UI implementation patterns have been upgraded to utilize Android Jetpack Compose
