@@ -7,7 +7,7 @@ After leaping into the tech industry, this music player app project has been use
 and a reference for others to review my software development progress every step of the way.
 
 #### Important Note:
-Although this is currently an incomplete, WIP proof-of-concept, I plan to use publish and distribute this project later for others to consume. With that said, this project is not open-sourced
+Although _**this is currently an incomplete, WIP proof-of-concept**_, I plan to use publish and distribute this project later for others to consume. With that said, this project is not open-sourced
 or available for others to consume, copy, revise, publish nor distribute in any manner.
 
 ---
