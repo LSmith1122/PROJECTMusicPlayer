@@ -42,7 +42,7 @@ import kotlin.jvm.optionals.getOrNull
 private const val MIN_ELAPSED_TIME_FOR_REWIND_MS = 3 * 1000 // 3 seconds
 
 @HiltViewModel
-class MusicPlayerStateViewModel @Inject constructor(
+class MediaPlayerStateViewModel @Inject constructor(
     private val application: Application,
     dispatchersProvider: DispatcherProvider
 ) : ViewModel() {
@@ -181,18 +181,16 @@ class MusicPlayerStateViewModel @Inject constructor(
                 updateMediaPlayerState(TrackState.PLAYING)
             }
         } else {
-            mediaPlayer?.let {
-                if (mediaPlayer!!.currentPosition < MIN_ELAPSED_TIME_FOR_REWIND_MS) {
-                    updateMediaPlayerState(TrackState.STOPPED)
-                    previousTrack?.let {
-                        mediaPlayer = getMediaPlayer(context, previousTrack).apply {
-                            prepare()
-                            updateCurrentAudioTrack(previousTrack)
-                        }
+            if (mediaPlayer?.let { it.currentPosition < MIN_ELAPSED_TIME_FOR_REWIND_MS } == true) {
+                updateMediaPlayerState(TrackState.STOPPED)
+                previousTrack?.let {
+                    mediaPlayer = getMediaPlayer(context, previousTrack).apply {
+                        prepare()
+                        updateCurrentAudioTrack(previousTrack)
                     }
-                } else {
-                    mediaPlayer!!.seekTo(0)
                 }
+            } else {
+                mediaPlayer?.seekTo(0)
             }
         }
     }
@@ -229,11 +227,11 @@ class MusicPlayerStateViewModel @Inject constructor(
 
         if (isMediaPlaying()) {
             pauseTrack()
-            mediaPlayer!!.seekTo(seekMilliseconds)
-            mediaPlayer!!.start()
+            mediaPlayer?.seekTo(seekMilliseconds)
+            mediaPlayer?.start()
             updateMediaPlayerState(TrackState.PLAYING)
         } else {
-            mediaPlayer!!.seekTo(seekMilliseconds)
+            mediaPlayer?.seekTo(seekMilliseconds)
         }
     }
 

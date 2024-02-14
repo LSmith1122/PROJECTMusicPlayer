@@ -1,116 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.activities.MainActivity"
-    android:orientation="vertical"
-    android:background="@color/colorPrimary">
+    tools:context=".ui.activities.MusicPlayerActivity">
+
     <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/button_bg"
-        android:layout_marginBottom="8dp">
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <TextView
-                android:id="@+id/current_song_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:padding="8dp"
-                android:layout_centerHorizontal="true"
-                android:background="?android:attr/selectableItemBackground"/>
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/baseline_keyboard_arrow_right_white_24"
-                android:layout_alignParentRight="true"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="16dp"/>
-        </RelativeLayout>
-    </FrameLayout>
-    <RelativeLayout
+        android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
-        <ListView
-            android:id="@+id/item_list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@null"
-            android:dividerHeight="1dp"/>       <!-- @android:divider and @android:dividerHeight was retrieved from https://stackoverflow.com/questions/1914477/how-do-i-remove-lines-between-listviews-on-android -->
-    </RelativeLayout>
-    <LinearLayout
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/media_controller_container"/>
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/media_controller_container"
+        android:name="com.seebaldtart.projectmusicplayer.ui.fragments.MusicPlayerControlFragment"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"/>
-            <RelativeLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="8">
-                <SeekBar
-                    android:id="@+id/seekbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal" />
-                <TextView
-                    android:id="@+id/current_duration"
-                    style="@style/default_time"
-                    android:layout_alignLeft="@+id/seekbar"/>
-                <TextView
-                    android:id="@+id/total_duration"
-                    style="@style/default_time"
-                    android:layout_alignRight="@+id/seekbar"/>
-            </RelativeLayout>
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"/>
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="8dp">
-            <FrameLayout
-                style="@style/main_action_buttons_framelayout">
-                <ImageButton
-                    android:id="@+id/previous"
-                    style="@style/main_action_buttons"
-                    android:src="@drawable/baseline_skip_previous_white_24"/>
-            </FrameLayout>
-            <FrameLayout
-                style="@style/main_action_buttons_framelayout">
-                <ImageButton
-                    android:id="@+id/play"
-                    style="@style/main_action_buttons"
-                    android:src="@drawable/baseline_play_arrow_white_24"/>
-            </FrameLayout>
-            <FrameLayout
-                style="@style/main_action_buttons_framelayout">
-                <ImageButton
-                    android:id="@+id/next"
-                    style="@style/main_action_buttons"
-                    android:src="@drawable/baseline_skip_next_white_24"/>
-            </FrameLayout>
-        </LinearLayout>
-    </LinearLayout>
-</LinearLayout>
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
