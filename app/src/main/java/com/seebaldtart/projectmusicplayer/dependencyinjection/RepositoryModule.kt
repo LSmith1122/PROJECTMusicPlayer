@@ -14,5 +14,4 @@ interface RepositoryModule {
     @Binds
     @Singleton
     fun bindsAudioTrackRepository(repo: AudioTrackRepositoryImpl): AudioTrackRepository
-
 }

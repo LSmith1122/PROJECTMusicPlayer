@@ -1,4 +1,4 @@
-package com.seebaldtart.projectmusicplayer.models.data.enums
+package com.seebaldtart.projectmusicplayer.models.enums
 
 enum class TrackState {
     PLAYING,

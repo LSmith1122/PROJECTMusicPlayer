@@ -18,12 +18,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.seebaldtart.projectmusicplayer.R
 import com.seebaldtart.projectmusicplayer.ui.theme.PROJECTMusicPlayerTheme
 import com.seebaldtart.projectmusicplayer.utils.MediaPlayerUtils
@@ -61,14 +59,13 @@ fun AudioTrackListItem (
 ) {
     PROJECTMusicPlayerTheme {
         val selectedID by selectedIDState
-        val selectedBackground = R.color.colorPrimary
-        val unSelectedBackground = android.R.color.transparent
+        val primaryColor = MaterialTheme.colorScheme.primary
         val background by remember(selectedID) {
-            mutableIntStateOf(
+            mutableStateOf(
                 if (selectedID == id) {
-                    selectedBackground
+                    primaryColor
                 } else {
-                    unSelectedBackground
+                    Color.Transparent
                 }
             )
         }
@@ -77,7 +74,7 @@ fun AudioTrackListItem (
             modifier = Modifier
                 .height(dimensionResource(R.dimen.list_item_height))
                 .fillMaxWidth()
-                .background(colorResource(background))
+                .background(background)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = LocalIndication.current,
@@ -128,28 +125,26 @@ fun AudioTrackListItem (
                     ) {
                         Text(
                             text = title,
-                            color = Color.White,
-                            fontSize = 16.sp,
                             textAlign = TextAlign.Start,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.align(Alignment.BottomStart)
+                            modifier = Modifier.align(Alignment.BottomStart),
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1F, true)
-                            .offset(y = (-2).dp)
+                            .offset(y = 4.dp)
                     ) {
                         Text(
                             text = "$artist - $album",
-                            color = Color.White,
-                            fontSize = 12.sp,
                             textAlign = TextAlign.Start,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -163,9 +158,8 @@ fun AudioTrackListItem (
             ) {
                 Text(
                     text = MediaPlayerUtils.getMediaTime(duration),
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
 
