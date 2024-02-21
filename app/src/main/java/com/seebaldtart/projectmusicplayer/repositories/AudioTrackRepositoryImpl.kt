@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
-import android.database.Cursor
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
@@ -13,10 +12,8 @@ import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
 import androidx.annotation.RequiresApi
-import androidx.core.graphics.drawable.toBitmap
-import com.bumptech.glide.Glide
 import com.seebaldtart.projectmusicplayer.models.AudioTrack
-import com.seebaldtart.projectmusicplayer.utils.DispatcherProvider
+import com.seebaldtart.projectmusicplayer.services.ThumbnailService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,14 +30,18 @@ private const val DEFAULT_THUMBNAIL_SIZE = 750
 
 class AudioTrackRepositoryImpl @Inject constructor(
     private val application: Application,
-    private val dispatcherProvider: DispatcherProvider
+    private val thumbnailService: ThumbnailService
 ): AudioTrackRepository {
 
     private val allAudioTracks = MutableStateFlow<List<AudioTrack>>(emptyList())
     private val allAudioThumbnails = ConcurrentHashMap<String, Bitmap?>()
+    private var isInitialized = false
 
-    init {
-        retrieveAllAudioTracks()
+    override fun initialize() {
+        if (!isInitialized) {
+            retrieveAllAudioTracks()
+            isInitialized = true
+        }
     }
 
     override fun stream(): StateFlow<List<AudioTrack>> = allAudioTracks
@@ -70,10 +71,10 @@ class AudioTrackRepositoryImpl @Inject constructor(
                             loadBitmapFromLocal(context.contentResolver, uri)
                         } catch (e: FileNotFoundException) {
                             // The Uri might be a URL. Attempt making a service call to retrieve...
-                            retrieveBitmap(context, uri)
+                            thumbnailService.fetchBitmap(context, uri, Size(DEFAULT_THUMBNAIL_SIZE, DEFAULT_THUMBNAIL_SIZE))
                         }
                     } else {
-                        retrieveBitmap(context, uri)
+                        thumbnailService.fetchBitmap(context, uri, Size(DEFAULT_THUMBNAIL_SIZE, DEFAULT_THUMBNAIL_SIZE))
                     }
                 } catch (e: Exception) {
                     logError(e)
@@ -88,8 +89,6 @@ class AudioTrackRepositoryImpl @Inject constructor(
         }
     }
 
-    /** Refreshes the list of audio tracks. Calling this method will not refresh the
-     * cached thumbnail bitmaps. */
     override fun refresh() {
         retrieveAllAudioTracks()
     }
@@ -118,8 +117,7 @@ class AudioTrackRepositoryImpl @Inject constructor(
         selectionArgs: Array<String>?,
         audioTracks: MutableList<AudioTrack>
     ) {
-        val cursor = application.contentResolver.query(
-            contentUri,
+        val projection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             arrayOf(
                 MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.TRACK,
@@ -128,9 +126,29 @@ class AudioTrackRepositoryImpl @Inject constructor(
                 MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.ALBUM_ID,
                 MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.YEAR,
+                MediaStore.Audio.Media.GENRE_ID,
+                MediaStore.Audio.Media.GENRE,
                 MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.DATA
-            ),
+            )
+        } else {
+            arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TRACK,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST_ID,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.YEAR,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.DATA
+            )
+        }
+        val cursor = application.contentResolver.query(
+            contentUri,
+            projection,
             selection,
             selectionArgs,
             "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
@@ -144,6 +162,13 @@ class AudioTrackRepositoryImpl @Inject constructor(
             val artistColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val albumIDColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val albumColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val yearColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
+            var genreIDColumn: Int? = null
+            var genreColumn: Int? = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                genreIDColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.GENRE)
+                genreColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.GENRE_ID)
+            }
             val durationColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val dataColumn = getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
 
@@ -155,6 +180,9 @@ class AudioTrackRepositoryImpl @Inject constructor(
                 val artist = getString(artistColumn)
                 val albumID = getLong(albumIDColumn)
                 val albumName = getString(albumColumn)
+                val yearName = getInt(yearColumn)
+                val genreIDName = genreIDColumn?.let { getLong(it) }
+                val genreName = genreColumn?.let { getString(it) }
                 val duration = getInt(durationColumn)
                 val path = getString(dataColumn)
 
@@ -165,6 +193,9 @@ class AudioTrackRepositoryImpl @Inject constructor(
                     artistID,
                     artist,
                     albumName,
+                    yearName,
+                    genreIDName,
+                    genreName,
                     duration,
                     getAlbumCoverUri(albumID),
                     path
@@ -188,15 +219,6 @@ class AudioTrackRepositoryImpl @Inject constructor(
         Size(DEFAULT_THUMBNAIL_SIZE, DEFAULT_THUMBNAIL_SIZE),
         CancellationSignal()
     )
-
-    private fun retrieveBitmap(
-        context: Context,
-        uri: Uri
-    ) = Glide.with(context)
-        .load(uri)
-        .submit()
-        .get()
-        .toBitmap(DEFAULT_THUMBNAIL_SIZE, DEFAULT_THUMBNAIL_SIZE)
 
     private fun getAlbumCoverUri(albumId: Long): Uri {
         val albumArtUri = Uri.parse(ALBUM_ART_URI_PATH)

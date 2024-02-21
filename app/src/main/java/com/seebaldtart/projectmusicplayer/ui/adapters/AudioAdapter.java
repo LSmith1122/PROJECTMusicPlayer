@@ -9,19 +9,17 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.seebaldtart.projectmusicplayer.models.SongObject;
-
 import java.util.ArrayList;
-public class AudioAdapter extends ArrayAdapter<SongObject> {
-    public AudioAdapter(Activity context, ArrayList<SongObject> songList) {
-        super(context, 0, songList);
-    }
-    ImageView image;
-    TextView songTitle;
-    TextView songInfoText;
-    @NonNull
-    @Override
-    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+public class AudioAdapter  {
+//    public AudioAdapter(Activity context, ArrayList<SongObject> songList) {
+//        super(context, 0, songList);
+//    }
+//    ImageView image;
+//    TextView songTitle;
+//    TextView songInfoText;
+//    @NonNull
+//    @Override
+//    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
 //        if(convertView == null) {
 //            convertView = LayoutInflater.from(getContext()).inflate(R.layout.custom_list_item, parent, false);
 //        }
@@ -37,6 +35,6 @@ public class AudioAdapter extends ArrayAdapter<SongObject> {
 //        } else {
 //            image.setImageResource(R.drawable.default_icon_song_album1);
 //        }
-        return convertView;
-    }
+//        return convertView;
+//    }
 }

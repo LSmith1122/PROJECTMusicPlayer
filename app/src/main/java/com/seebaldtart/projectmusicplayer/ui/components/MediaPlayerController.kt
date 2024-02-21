@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +61,7 @@ fun MediaPlayerController(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colorResource(R.color.colorPrimaryDark))
+                .background(MaterialTheme.colorScheme.secondary)
                 .padding(bottom = 8.dp)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -91,7 +92,7 @@ fun MediaPlayerController(
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = MediaPlayerUtils.getMediaTime(playTimeProgressState.toInt()),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier
                                     .align(Alignment.CenterStart)
                                     .offset(y = (-8).dp)
@@ -99,7 +100,7 @@ fun MediaPlayerController(
 
                             Text(
                                 text = MediaPlayerUtils.getMediaTime(totalDuration.toInt()),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier
                                     .align(Alignment.CenterEnd)
                                     .offset(y = (-8).dp)
@@ -116,8 +117,15 @@ fun MediaPlayerController(
                 ) {
                     Spacer(Modifier.weight(1F, fill = true))
 
-                    val isAudioPlaying by isAudioPlayingState
                     val imageResIDPrevious by remember { mutableIntStateOf(R.drawable.baseline_skip_previous_white_24) }
+                    PlaybackControlButton(
+                        this,
+                        imageResIDPrevious,
+                        stringResource(R.string.content_description_skip_previous),
+                        onPreviousClicked
+                    )
+
+                    val isAudioPlaying by isAudioPlayingState
                     val imageResIDPlayPause by remember(isAudioPlaying) {
                         mutableIntStateOf(
                             if (isAudioPlaying) {
@@ -127,14 +135,6 @@ fun MediaPlayerController(
                             }
                         )
                     }
-                    val imageResIDNext by remember { mutableIntStateOf(R.drawable.baseline_skip_next_white_24) }
-
-                    PlaybackControlButton(
-                        this,
-                        imageResIDPrevious,
-                        stringResource(R.string.content_description_skip_previous),
-                        onPreviousClicked
-                    )
                     PlaybackControlButton(
                         this,
                         imageResIDPlayPause,
@@ -146,6 +146,8 @@ fun MediaPlayerController(
                             onPlayClicked.invoke()
                         }
                     }
+
+                    val imageResIDNext by remember { mutableIntStateOf(R.drawable.baseline_skip_next_white_24) }
                     PlaybackControlButton(
                         this,
                         imageResIDNext,
@@ -170,10 +172,10 @@ private fun PlaybackControlButton(
     scope.run {
         Button(
             colors = ButtonColors(
-                containerColor = colorResource(R.color.colorPrimary),
-                contentColor = colorResource(R.color.colorPrimary),
-                disabledContainerColor = colorResource(R.color.colorPrimary),
-                disabledContentColor = colorResource(R.color.colorPrimary)
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = MaterialTheme.colorScheme.primary,
+                disabledContentColor = MaterialTheme.colorScheme.primary
             ),
             onClick = onClick,
             shape = AbsoluteCutCornerShape(corner = CornerSize(0.dp)),

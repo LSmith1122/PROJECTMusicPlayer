@@ -14,7 +14,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toBottomOf="@id/media_controller_container"/>
+        app:layout_constraintBottom_toTopOf="@id/media_controller_container"/>
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/media_controller_container"
         android:name="com.seebaldtart.projectmusicplayer.ui.fragments.MusicPlayerControlFragment"

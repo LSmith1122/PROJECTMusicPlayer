@@ -7,13 +7,14 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.PowerManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seebaldtart.projectmusicplayer.models.AudioTrack
-import com.seebaldtart.projectmusicplayer.models.data.enums.LoopState
-import com.seebaldtart.projectmusicplayer.models.data.enums.PlaybackError
-import com.seebaldtart.projectmusicplayer.models.data.enums.TrackState
+import com.seebaldtart.projectmusicplayer.models.enums.LoopState
+import com.seebaldtart.projectmusicplayer.models.enums.PlaybackError
+import com.seebaldtart.projectmusicplayer.models.enums.TrackState
 import com.seebaldtart.projectmusicplayer.utils.DispatcherProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.currentCoroutineContext
@@ -22,12 +23,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -44,7 +47,7 @@ private const val MIN_ELAPSED_TIME_FOR_REWIND_MS = 3 * 1000 // 3 seconds
 @HiltViewModel
 class MediaPlayerStateViewModel @Inject constructor(
     private val application: Application,
-    dispatchersProvider: DispatcherProvider
+    private val dispatchersProvider: DispatcherProvider
 ) : ViewModel() {
 
     private val audioManager: AudioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -55,6 +58,7 @@ class MediaPlayerStateViewModel @Inject constructor(
     private val previouslySelectedAudioTrack = MutableStateFlow<Optional<AudioTrack>>(Optional.empty())
     private val currentPlaylist = MutableStateFlow<List<AudioTrack>>(emptyList())
     private val loopState = MutableStateFlow(LoopState.NONE)
+    private val isReleased = MutableStateFlow(true)
     private val audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener =
         AudioManager.OnAudioFocusChangeListener { focusChange ->
             when (focusChange) {
@@ -72,6 +76,7 @@ class MediaPlayerStateViewModel @Inject constructor(
                 LoopState.ALL -> onAudioCompleteForLoopAll()
             }
         }
+    /** Streams the [AudioTrack] that is currently playing. */
     val nowPlayingTrack: Flow<Optional<AudioTrack>> =
         combine(trackState, currentAudioTrack) { state, trackOptional ->
             val optional = if (isMediaPlaying() || state == TrackState.PAUSED) {
@@ -82,14 +87,17 @@ class MediaPlayerStateViewModel @Inject constructor(
             }
             delegate?.onTrackAutomaticallyUpdated(optional.getOrNull())
             optional
-        }.stateIn(viewModelScope, SharingStarted.Lazily, Optional.empty())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Optional.empty())
+    /** Streams the current play-time progress of the [AudioTrack] that is currently playing. */
     val nowPlayingTrackProgress: Flow<Int> =
         flow {
             while (currentCoroutineContext().isActive) {
-                (mediaPlayer?.currentPosition ?: 0).run { emit(this) }
-                delay(100)
+                if (!isReleased.value) {
+                    (mediaPlayer?.currentPosition ?: 0).run { emit(this) }
+                }
+                delay(250)
             }
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0)
 
     init {
         addCloseable {
@@ -113,46 +121,39 @@ class MediaPlayerStateViewModel @Inject constructor(
         }
     }
 
+    /** This function returns a stream of the current [TrackState]. */
     fun getTrackState(): StateFlow<TrackState> = trackState
 
+    /** Sets the playlist for the media player controller to use for playback. */
     fun setCurrentPlaylist(tracks: List<AudioTrack>) {
         currentPlaylist.update { tracks }
     }
 
+    /** Sets and/or replaces the [Delegate] who should receive callback notifications from the media player. */
     fun setDelegate(delegate: Delegate?) {
         this.delegate = delegate
     }
 
-    fun onAudioTrackSelected(id: Long) {
-        currentPlaylist
-            .value
-            .firstOrNull { it.id == id }
-            ?.let { track ->
-                updateCurrentAudioTrack(track)
-            }
-            ?: run {
-                Log.e(
-                    this::class.simpleName,
-                    null,
-                    RuntimeException("No track with the given ID was found in selection. Was the playlist updated prior to selecting a track?")
-                )
-            }
-    }
-
+    /** Calling this function will update the currently selected [AudioTrack]. */
     fun onAudioTrackSelected(track: AudioTrack) {
         updateCurrentAudioTrack(track)
     }
 
+    /** Calling this function notifies the media player that the PLAY operation should be invoked. */
     fun onPlayClicked(context: Context) {
-        currentAudioTrack
-            .value
-            .getOrNull()
-            ?.let { playTrack(context, it) }
-            ?: run {
-                delegate?.onError(PlaybackError.PLAY_FAILED)
-            }
+        val current = currentAudioTrack.value.getOrNull()
+        val defaultFirst = currentPlaylist.value.firstOrNull()
+
+        if (current != null) {
+            playTrack(context, current)
+        } else if (defaultFirst != null) {
+            playTrack(context, defaultFirst, true)
+        } else {
+            delegate?.onError(PlaybackError.PLAY_FAILED)
+        }
     }
 
+    /** Calling this function notifies the media player that the PAUSE operation should be invoked. */
     fun onPauseClicked() {
         currentAudioTrack
             .value
@@ -160,15 +161,17 @@ class MediaPlayerStateViewModel @Inject constructor(
             ?.let { pauseTrack() }
             ?: run {
                 if (mediaPlayer?.isPlaying == true) {
-                    delegate?.onError(PlaybackError.UNEXPECTED)
+                    delegate?.onError(PlaybackError.PAUSE_FAILED)
                 }
             }
     }
 
+    /** Calling this function notifies the media player that the STOP operation should be invoked. */
     fun onStopClicked() {
         updateMediaPlayerState(TrackState.STOPPED)
     }
 
+    /** Calling this function notifies the media player that the SKIP/PREVIOUS operation should be invoked. */
     fun onPreviousClicked(context: Context) {
         val previousTrack = getPreviousTrack()
         if (isMediaPlaying()) {
@@ -195,6 +198,7 @@ class MediaPlayerStateViewModel @Inject constructor(
         }
     }
 
+    /** Calling this function notifies the media player that the SKIP/NEXT operation should be invoked. */
     fun onNextClicked(context: Context) {
         getNextTrack()?.let { nextTrack ->
             if (isMediaPlaying()) {
@@ -209,6 +213,13 @@ class MediaPlayerStateViewModel @Inject constructor(
         }
     }
 
+    /** Calling this function notifies the media player that the LOOP operation should be invoked.
+     * Calling this multiple times will cycle through the following states, in order:
+     *
+     * - [LoopState.NONE]
+     * - [LoopState.ONE]
+     * - [LoopState.ALL]
+     * */
     fun onLoopClicked() {
         val newState = when (loopState.value) {
             LoopState.NONE -> LoopState.ONE
@@ -220,6 +231,8 @@ class MediaPlayerStateViewModel @Inject constructor(
         loopState.update { newState }
     }
 
+    /** Calling this function manually changes the currently selected [AudioTrack]'s playtime position.
+     * This is usually done during the SEEK operation. */
     fun updateTrackCurrentPosition(seekMilliseconds: Int) {
         if (!isAudioFocusGranted()) {
             return
@@ -243,6 +256,12 @@ class MediaPlayerStateViewModel @Inject constructor(
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .build()
             )
+            setOnCompletionListener {  }
+            setOnInfoListener { mp, what, extra ->
+                Log.d(this@MediaPlayerStateViewModel::class.simpleName, "DIAMOND - What=$what, Extra=$extra")
+                false
+            }
+            setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
             setDataSource(context, Uri.parse(track.path))
             setOnCompletionListener(audioCompletionListener)
             isLooping = loopState.value == LoopState.ONE
@@ -250,17 +269,24 @@ class MediaPlayerStateViewModel @Inject constructor(
 
     private fun playTrack(context: Context, track: AudioTrack, force: Boolean = false) {
         val previouslySelectedTrack = previouslySelectedAudioTrack.value.getOrNull()
-        val shouldPlayNewTrack = previouslySelectedTrack?.id != track.id
+        val shouldPlayNewTrack = previouslySelectedTrack?.id != track.id && trackState.value != TrackState.PAUSED
         if (force || mediaPlayer == null || shouldPlayNewTrack) {
-            updateMediaPlayerState(TrackState.STOPPED, false)
+            updateMediaPlayerState(TrackState.STOPPED)
             mediaPlayer = getMediaPlayer(context, track)
                 .apply {
                     setOnPreparedListener {
-                        // Prepare the next song, but don't play it if we do not have focus
-                        updateMediaPlayerState(TrackState.PLAYING)
-                        updateCurrentAudioTrack(track)
+                        viewModelScope.launch(dispatchersProvider.io) {
+                            // Adding a slight delay to attempt to combat the potential stuttering that is
+                            // believed to be a result of buffering
+                            delay(200L)
+                            updateMediaPlayerState(TrackState.PLAYING)
+                            updateCurrentAudioTrack(track)
+                            isReleased.update { false }
+                        }
                     }
-                    prepareAsync()
+                    viewModelScope.launch(dispatchersProvider.io) {
+                        prepareAsync()
+                    }
                 }
         } else {
             updateMediaPlayerState(TrackState.PLAYING)
@@ -323,7 +349,6 @@ class MediaPlayerStateViewModel @Inject constructor(
     private fun isMediaPlaying() = try {
         mediaPlayer?.isPlaying == true
     } catch (e: Exception) {
-        Log.e(this::class.simpleName, null, e)
         false
     }
 
@@ -331,6 +356,7 @@ class MediaPlayerStateViewModel @Inject constructor(
         trackState: TrackState,
         updateTrackState: Boolean = true
     ) {
+        var hasError = false
         try {
             when (trackState) {
                 TrackState.PLAYING -> {
@@ -342,6 +368,7 @@ class MediaPlayerStateViewModel @Inject constructor(
                 TrackState.STOPPED -> mediaPlayer?.stop()
             }
         } catch (exception: IllegalStateException) {
+            hasError = true
             val notifyDelegate: () -> Unit
             val errorMessage = when (trackState) {
                 TrackState.PLAYING -> {
@@ -364,13 +391,26 @@ class MediaPlayerStateViewModel @Inject constructor(
             notifyDelegate.invoke()
         } finally {
             if (updateTrackState) {
-                mediaPlayer?.let {
-                    this.trackState.update { trackState }
-                    if (trackState == TrackState.STOPPED) {
-                        it.release()
-                        clearCurrentAudioTrack()
-                    }
-                } ?: this.trackState.update { TrackState.STOPPED }
+                if (hasError) {
+                    this@MediaPlayerStateViewModel.trackState.update { TrackState.STOPPED }
+                } else {
+                    mediaPlayer?.run {
+                        when (trackState) {
+                            TrackState.PLAYING -> {
+                                if (isAudioFocusGranted()) {
+                                    this@MediaPlayerStateViewModel.trackState.update { trackState }
+                                }
+                            }
+                            TrackState.PAUSED -> this@MediaPlayerStateViewModel.trackState.update { trackState }
+                            TrackState.STOPPED -> {
+                                reset()
+                                release()
+                                isReleased.update { true }
+                                clearCurrentAudioTrack()
+                            }
+                        }
+                    } ?: this.trackState.update { TrackState.STOPPED }
+                }
             }
         }
     }
@@ -386,6 +426,7 @@ class MediaPlayerStateViewModel @Inject constructor(
     private fun releaseMediaPlayerAndFocus() {
         mediaPlayer?.reset()
         mediaPlayer?.release()
+        isReleased.update { true }
         mediaPlayer = null
         val audioFocusRequest = AudioFocusRequest
             .Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -415,7 +456,7 @@ class MediaPlayerStateViewModel @Inject constructor(
 
     private fun onAudioCompleteForNoLoop() {
         getCurrentTrackIndex()?.let { currentIndex ->
-            if (currentIndex < currentPlaylist.value.lastIndex) {
+            if (currentPlaylist.value.lastIndex > -1 && currentIndex < currentPlaylist.value.lastIndex) {
                 getNextTrack()?.let { track -> playTrack(application, track, true) }
             } else {
                 updateMediaPlayerState(TrackState.STOPPED)
@@ -424,13 +465,13 @@ class MediaPlayerStateViewModel @Inject constructor(
     }
 
     private fun onAudioCompleteForSingleLoop() {
-        updateMediaPlayerState(TrackState.PAUSED, false)
+        updateMediaPlayerState(TrackState.PAUSED)
         mediaPlayer?.seekTo(0)
-        updateMediaPlayerState(TrackState.PLAYING, false)
+        updateMediaPlayerState(TrackState.PLAYING)
     }
 
     private fun onAudioCompleteForLoopAll() {
-        getNextTrack()?.let { track -> playTrack(application, track, true) }
+        getNextTrack()?.let { track -> playTrack(application, track) }
     }
 
     interface Delegate {
