@@ -103,14 +103,14 @@ class MusicPlayerActivity : FragmentActivity() {
             permissions.entries.forEach { entry ->
                 when (entry.key) {
                     READ_EXTERNAL_STORAGE -> {
-                        val isValidVersion = Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2
+                        val isValidVersion = Build.VERSION.SDK_INT in Build.VERSION_CODES.KITKAT .. Build.VERSION_CODES.S_V2
                         if (isValidVersion && !entry.value) {
                             missingPermission = true
                         }
                     }
-
                     READ_MEDIA_AUDIO -> {
-                        if (!entry.value) {
+                        val isValidVersion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        if (isValidVersion && !entry.value) {
                             missingPermission = true
                         }
                     }
