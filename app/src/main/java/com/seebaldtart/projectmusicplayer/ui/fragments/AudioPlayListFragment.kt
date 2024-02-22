@@ -70,22 +70,6 @@ class AudioPlayListFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-//                mediaPlayerViewModel.setDelegate(object : MediaPlayerStateViewModel.Delegate {
-//                    override fun onTrackAutomaticallyUpdated(track: AudioTrack?) {
-//                        viewModel.onAudioTrackSelected(track)
-//                    }
-//
-//                    override fun onError(error: PlaybackError) {
-//                        // TODO: Display a Toast or SnackBar
-//                        val message = "Playback Error: $error"
-//                        Log.e(
-//                            this@AudioPlayListFragment::class.simpleName,
-//                            message,
-//                            RuntimeException(message)
-//                        )
-//                    }
-//                })
-
                 PROJECTMusicPlayerTheme {
                     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
                     Scaffold(
@@ -114,6 +98,7 @@ class AudioPlayListFragment : Fragment() {
                                 onAudioTrackSelected = { track ->
                                     viewModel.onAudioTrackSelected(track)
                                     mediaPlayerViewModel.onAudioTrackSelected(track)
+                                    mediaPlayerViewModel.setCurrentPlaylist(viewModel.selectedPlayListState.value)
                                     mediaPlayerViewModel.onPlayClicked(requireContext())
                                 },
                                 onAudioTrackShown = viewModel::loadThumbnailsForTrack

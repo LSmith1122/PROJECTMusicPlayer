@@ -77,9 +77,7 @@ import com.seebaldtart.projectmusicplayer.ui.theme.PROJECTMusicPlayerTheme
 import com.seebaldtart.projectmusicplayer.viewmodels.AudioPlayListViewModel
 import com.seebaldtart.projectmusicplayer.viewmodels.MediaPlayerStateViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlin.jvm.optionals.getOrNull
 
 @AndroidEntryPoint
@@ -110,14 +108,11 @@ class AudioPlayListSelectionFragment : Fragment() {
                             RuntimeException(message)
                         )
                     }
-                })
 
-                LaunchedEffect(true) {
-                    viewModel.stream()
-                        .onEach {
-                            mediaPlayerViewModel.setCurrentPlaylist(it)
-                        }.collect()
-                }
+                    override fun onRequestPlayList(): List<AudioTrack> {
+                        return viewModel.selectedPlayListState.value
+                    }
+                })
 
                 PROJECTMusicPlayerTheme {
                     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -144,6 +139,7 @@ class AudioPlayListSelectionFragment : Fragment() {
                                 onAudioTrackSelected = { track ->
                                     viewModel.onAudioTrackSelected(track)
                                     mediaPlayerViewModel.onAudioTrackSelected(track)
+                                    mediaPlayerViewModel.setCurrentPlaylist(viewModel.selectedPlayListState.value)
                                     mediaPlayerViewModel.onPlayClicked(requireContext())
                                 },
                                 onAudioTrackShown = viewModel::loadThumbnailsForTrack,

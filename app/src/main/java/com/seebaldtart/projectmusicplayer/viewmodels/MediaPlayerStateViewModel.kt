@@ -23,14 +23,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -143,11 +141,15 @@ class MediaPlayerStateViewModel @Inject constructor(
     fun onPlayClicked(context: Context) {
         val current = currentAudioTrack.value.getOrNull()
         val defaultFirst = currentPlaylist.value.firstOrNull()
+        val backupPlaylist = delegate!!.onRequestPlayList().takeUnless { it.isEmpty() }
 
         if (current != null) {
             playTrack(context, current)
         } else if (defaultFirst != null) {
             playTrack(context, defaultFirst, true)
+        } else if (!backupPlaylist.isNullOrEmpty()) {
+            setCurrentPlaylist(backupPlaylist)
+            playTrack(context, backupPlaylist.first(), true)
         } else {
             delegate?.onError(PlaybackError.PLAY_FAILED)
         }
@@ -477,5 +479,6 @@ class MediaPlayerStateViewModel @Inject constructor(
     interface Delegate {
         fun onError(error: PlaybackError)
         fun onTrackAutomaticallyUpdated(track: AudioTrack?)
+        fun onRequestPlayList(): List<AudioTrack>
     }
 }

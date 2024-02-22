@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
@@ -53,12 +54,23 @@ class AudioPlayListViewModel @Inject constructor(
     /** The [StateFlow] for the current [GroupItemSelectionState] */
     val groupItemSelectionState: StateFlow<GroupItemSelectionState> = _groupItemSelectionState
 
+    init {
+        viewModelScope.launch {
+            stream()
+                .onEach {
+                    if (selectedPlayList.value.isEmpty()) {
+                        selectedPlayList.emit(it)
+                    }
+                }.collect()
+        }
+    }
+
     /** This method streams all audio tracks found or currently focused on (via Groups) */
     fun stream(): StateFlow<List<AudioTrack>> = repository.stream()
 
     /** This function streams all audio track group data */
     fun streamByGroup(): StateFlow<AudioGroupData> =
-        combine(selectedGroupSelectionState, repository.stream()) { selection, audioTracks ->
+        combine(selectedGroupSelectionState, stream()) { selection, audioTracks ->
             when (selection) {
                 GroupSelectionState.ALL_TRACKS -> getAudioGroupDataForAllTracks(audioTracks)
                 GroupSelectionState.ARTISTS -> getAudioGroupDataForArtists(audioTracks)
