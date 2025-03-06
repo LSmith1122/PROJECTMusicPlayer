@@ -1,21 +1,23 @@
 package com.seebaldtart.projectmusicplayer.viewmodels
 
-import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seebaldtart.projectmusicplayer.models.AudioTrack
-import com.seebaldtart.projectmusicplayer.repositories.AudioTrackRepository
-import com.seebaldtart.projectmusicplayer.utils.DispatcherProvider
-import com.seebaldtart.projectmusicplayer.models.enums.AudioTrackFilter
 import com.seebaldtart.projectmusicplayer.models.AudioGroupData
 import com.seebaldtart.projectmusicplayer.models.AudioGroupDetails
+import com.seebaldtart.projectmusicplayer.models.AudioTrack
+import com.seebaldtart.projectmusicplayer.models.enums.AudioTrackFilter
 import com.seebaldtart.projectmusicplayer.models.enums.GroupItemSelectionState
 import com.seebaldtart.projectmusicplayer.models.enums.GroupSelectionState
+import com.seebaldtart.projectmusicplayer.repositories.AudioTrackRepository
+import com.seebaldtart.projectmusicplayer.utils.DispatcherProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
@@ -32,7 +34,6 @@ import kotlin.jvm.optionals.getOrNull
 
 @HiltViewModel
 class AudioPlayListViewModel @Inject constructor(
-    private val application: Application,
     private val dispatchersProvider: DispatcherProvider,
     private val repository: AudioTrackRepository
 ) : ViewModel() {
@@ -41,7 +42,7 @@ class AudioPlayListViewModel @Inject constructor(
     private val currentlySelectedTrack = MutableStateFlow<Optional<AudioTrack>>(Optional.empty())
     private val selectedTrackFilter = MutableStateFlow(AudioTrackFilter.NONE)
     private val selectedPlayList = MutableStateFlow<List<AudioTrack>>(emptyList())
-    private val _groupItemSelectionState = MutableStateFlow(GroupItemSelectionState.AUDIO_PLAY_LIST_SELECTION)
+    private val _groupItemSelectionState = MutableSharedFlow<GroupItemSelectionState>(replay = 2)
 
     /** The [StateFlow] for the currently selected [AudioTrack] */
     val selectedTrack: StateFlow<Optional<AudioTrack>> = currentlySelectedTrack
@@ -52,7 +53,7 @@ class AudioPlayListViewModel @Inject constructor(
     /** The [StateFlow] for the currently selected playlist */
     val selectedPlayListState: StateFlow<List<AudioTrack>> = selectedPlayList
     /** The [StateFlow] for the current [GroupItemSelectionState] */
-    val groupItemSelectionState: StateFlow<GroupItemSelectionState> = _groupItemSelectionState
+    val groupItemSelectionState: SharedFlow<GroupItemSelectionState> = _groupItemSelectionState
 
     init {
         viewModelScope.launch {
@@ -120,41 +121,41 @@ class AudioPlayListViewModel @Inject constructor(
             }
 
             selectedPlayList.update { groupedTracks }
-            _groupItemSelectionState.update { GroupItemSelectionState.AUDIO_PLAY_LIST }
+            viewModelScope.launch(dispatchersProvider.io) { _groupItemSelectionState.emit(GroupItemSelectionState.AUDIO_PLAY_LIST) }
         }
     }
 
     /** Clears the previously cached group items. This will also set the [GroupItemSelectionState] back to
      * [GroupItemSelectionState.AUDIO_PLAY_LIST_SELECTION]. */
     fun clearGroupItemSelection() {
-        _groupItemSelectionState.update { GroupItemSelectionState.AUDIO_PLAY_LIST_SELECTION }
+        viewModelScope.launch(dispatchersProvider.io) { _groupItemSelectionState.emit(GroupItemSelectionState.AUDIO_PLAY_LIST_SELECTION) }
         selectedPlayList.update { emptyList() }
     }
 
     /** Manually set the current [GroupItemSelectionState]. */
     fun setGroupItemSelectionState(groupItemSelectionState: GroupItemSelectionState) {
-        _groupItemSelectionState.update { groupItemSelectionState }
+        viewModelScope.launch(dispatchersProvider.io) { _groupItemSelectionState.emit(groupItemSelectionState) }
     }
 
     /** Attempts to load the thumbnail [Bitmap] image for the provided [AudioTrack]s.
      * If the [Bitmap] is already available (cached), the cached image will be retrieved. */
-    fun loadThumbnailsForTrack(track: AudioTrack) {
+    fun loadThumbnailsForTrack(context: Context, track: AudioTrack) {
         val update = track.getThumbnailBitmap().value.getOrNull() == null
-        loadThumbnailForUri(track.thumbnailUri, update, track::updateThumbnail)
+        loadThumbnailForUri(context, track.thumbnailUri, update, track::updateThumbnail)
     }
 
     /** Attempts to load the thumbnail [Bitmap] image for the provided [AudioGroupDetails]s.
      * If the [Bitmap] is already available (cached), the cached image will be retrieved. */
-    fun loadThumbnailsForGroupDetails(audioGroupDetails: AudioGroupDetails) {
+    fun loadThumbnailsForGroupDetails(context: Context, audioGroupDetails: AudioGroupDetails) {
         val update = audioGroupDetails.getThumbnailBitmap().value.getOrNull() == null
-        loadThumbnailForUri(audioGroupDetails.thumbnailUri, update, audioGroupDetails::updateThumbnail)
+        loadThumbnailForUri(context, audioGroupDetails.thumbnailUri, update, audioGroupDetails::updateThumbnail)
     }
 
-    private fun loadThumbnailForUri(uri: Uri?, update: Boolean, block: (Bitmap) -> Unit) {
+    private fun loadThumbnailForUri(context: Context, uri: Uri?, update: Boolean, block: (Bitmap) -> Unit) {
         if (update && uri != null) {
             // Retrieve the bitmap and update the track's thumbnail bitmap
             viewModelScope.launch(dispatchersProvider.io) {
-                repository.getThumbnailForUri(application, uri)
+                repository.getThumbnailForUri(context, uri)
                     .filter { bitmapOptional -> bitmapOptional.isPresent }
                     .onEach { bitmapOptional -> block.invoke(bitmapOptional.get()) }
                     .firstOrNull()
