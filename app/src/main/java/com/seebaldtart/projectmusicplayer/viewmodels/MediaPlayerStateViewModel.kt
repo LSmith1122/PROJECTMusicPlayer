@@ -1,12 +1,10 @@
 package com.seebaldtart.projectmusicplayer.viewmodels
 
-import android.app.Application
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.PowerManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -36,6 +34,7 @@ import kotlinx.coroutines.launch
 import java.util.Optional
 import javax.inject.Inject
 import kotlin.jvm.optionals.getOrNull
+import androidx.core.net.toUri
 
 // If the user presses the rewind button within 3 seconds of its current play-time,
 // the previous or last track will be played. Otherwise, the current track will be
@@ -44,18 +43,16 @@ private const val MIN_ELAPSED_TIME_FOR_REWIND_MS = 3 * 1000 // 3 seconds
 
 @HiltViewModel
 class MediaPlayerStateViewModel @Inject constructor(
-    private val application: Application,
+    private val audioManager: AudioManager?,
     private val dispatchersProvider: DispatcherProvider
 ) : ViewModel() {
-
-    private val audioManager: AudioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private var mediaPlayer: MediaPlayer? = null
     private var delegate: Delegate? = null
     private val trackState = MutableStateFlow(TrackState.STOPPED)
     private val currentAudioTrack = MutableStateFlow<Optional<AudioTrack>>(Optional.empty())
     private val previouslySelectedAudioTrack = MutableStateFlow<Optional<AudioTrack>>(Optional.empty())
     private val currentPlaylist = MutableStateFlow<List<AudioTrack>>(emptyList())
-    private val loopState = MutableStateFlow(LoopState.NONE)
+    private val _loopState = MutableStateFlow(LoopState.NONE)
     private val isReleased = MutableStateFlow(true)
     private val audioFocusChangeListener: AudioManager.OnAudioFocusChangeListener =
         AudioManager.OnAudioFocusChangeListener { focusChange ->
@@ -68,7 +65,7 @@ class MediaPlayerStateViewModel @Inject constructor(
         }
     private val audioCompletionListener: MediaPlayer.OnCompletionListener =
         MediaPlayer.OnCompletionListener {
-            when (loopState.value) {
+            when (_loopState.value) {
                 LoopState.NONE -> onAudioCompleteForNoLoop()
                 LoopState.ONE -> onAudioCompleteForSingleLoop()
                 LoopState.ALL -> onAudioCompleteForLoopAll()
@@ -96,6 +93,7 @@ class MediaPlayerStateViewModel @Inject constructor(
                 delay(250)
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0)
+    val loopState: StateFlow<LoopState> = _loopState
 
     init {
         addCloseable {
@@ -146,10 +144,10 @@ class MediaPlayerStateViewModel @Inject constructor(
         if (current != null) {
             playTrack(context, current)
         } else if (defaultFirst != null) {
-            playTrack(context, defaultFirst, true)
+            playTrack(context, defaultFirst, force = true)
         } else if (!backupPlaylist.isNullOrEmpty()) {
             setCurrentPlaylist(backupPlaylist)
-            playTrack(context, backupPlaylist.first(), true)
+            playTrack(context, backupPlaylist.first(), force = true)
         } else {
             delegate?.onError(PlaybackError.PLAY_FAILED)
         }
@@ -223,14 +221,14 @@ class MediaPlayerStateViewModel @Inject constructor(
      * - [LoopState.ALL]
      * */
     fun onLoopClicked() {
-        val newState = when (loopState.value) {
+        val newState = when (_loopState.value) {
             LoopState.NONE -> LoopState.ONE
             LoopState.ONE -> LoopState.ALL
             LoopState.ALL -> LoopState.NONE
         }
 
         mediaPlayer?.isLooping = newState == LoopState.ONE
-        loopState.update { newState }
+        _loopState.update { newState }
     }
 
     /** Calling this function manually changes the currently selected [AudioTrack]'s playtime position.
@@ -264,9 +262,9 @@ class MediaPlayerStateViewModel @Inject constructor(
                 false
             }
             setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
-            setDataSource(context, Uri.parse(track.path))
+            setDataSource(context, track.path.toUri())
             setOnCompletionListener(audioCompletionListener)
-            isLooping = loopState.value == LoopState.ONE
+            isLooping = _loopState.value == LoopState.ONE
         }
 
     private fun playTrack(context: Context, track: AudioTrack, force: Boolean = false) {
@@ -422,20 +420,22 @@ class MediaPlayerStateViewModel @Inject constructor(
             .Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setOnAudioFocusChangeListener(audioFocusChangeListener)
             .build()
-        return audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        return audioManager?.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 
     private fun releaseMediaPlayerAndFocus() {
-        mediaPlayer?.reset()
-        mediaPlayer?.release()
-        isReleased.update { true }
-        mediaPlayer = null
-        val audioFocusRequest = AudioFocusRequest
-            .Builder(AudioManager.AUDIOFOCUS_GAIN)
-            .setOnAudioFocusChangeListener(audioFocusChangeListener)
-            .build()
-        audioManager.abandonAudioFocusRequest(audioFocusRequest)
-        clearCurrentAudioTrack()
+        audioManager?.let {
+            mediaPlayer?.reset()
+            mediaPlayer?.release()
+            isReleased.update { true }
+            mediaPlayer = null
+            val audioFocusRequest = AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+            audioManager.abandonAudioFocusRequest(audioFocusRequest)
+            clearCurrentAudioTrack()
+        }
     }
 
     private fun resumePreviousState() {
@@ -459,7 +459,7 @@ class MediaPlayerStateViewModel @Inject constructor(
     private fun onAudioCompleteForNoLoop() {
         getCurrentTrackIndex()?.let { currentIndex ->
             if (currentPlaylist.value.lastIndex > -1 && currentIndex < currentPlaylist.value.lastIndex) {
-                getNextTrack()?.let { track -> playTrack(application, track, true) }
+                getNextTrack()?.let { track -> delegate?.let { playTrack(it.getContext(), track, true) } }
             } else {
                 updateMediaPlayerState(TrackState.STOPPED)
             }
@@ -473,10 +473,11 @@ class MediaPlayerStateViewModel @Inject constructor(
     }
 
     private fun onAudioCompleteForLoopAll() {
-        getNextTrack()?.let { track -> playTrack(application, track) }
+        getNextTrack()?.let { track -> delegate?.let { playTrack(it.getContext(), track) } }
     }
 
     interface Delegate {
+        fun getContext(): Context
         fun onError(error: PlaybackError)
         fun onTrackAutomaticallyUpdated(track: AudioTrack?)
         fun onRequestPlayList(): List<AudioTrack>

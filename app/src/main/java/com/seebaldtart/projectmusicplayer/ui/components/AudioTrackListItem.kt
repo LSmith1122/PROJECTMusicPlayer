@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,10 +36,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seebaldtart.projectmusicplayer.R
 import com.seebaldtart.projectmusicplayer.ui.theme.PROJECTMusicPlayerTheme
@@ -59,6 +63,7 @@ fun AudioTrackListItem (
 ) {
     PROJECTMusicPlayerTheme {
         val selectedID by selectedIDState
+        val isSelected by remember { mutableStateOf(selectedID == id) }
         val primaryColor = MaterialTheme.colorScheme.primary
         val background by remember(selectedID) {
             mutableStateOf(

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import java.io.FileNotFoundException
 import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 
 private const val ALBUM_ART_URI_PATH = "content://media/external/audio/albumart"
@@ -76,6 +77,9 @@ class AudioTrackRepositoryImpl @Inject constructor(
                     } else {
                         thumbnailService.fetchBitmap(context, uri, Size(DEFAULT_THUMBNAIL_SIZE, DEFAULT_THUMBNAIL_SIZE))
                     }
+                } catch (_: ExecutionException) {
+                    Log.e(this@AudioTrackRepositoryImpl::class.simpleName, "No album art found")
+                    null
                 } catch (e: Exception) {
                     logError(e)
                     null
