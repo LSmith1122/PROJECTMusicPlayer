@@ -6,6 +6,9 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.MarqueeAnimationMode
+import androidx.compose.foundation.MarqueeSpacing
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.palette.graphics.Palette
 import com.seebaldtart.projectmusicplayer.R
 import com.seebaldtart.projectmusicplayer.models.AudioTrack
 import com.seebaldtart.projectmusicplayer.models.enums.GroupItemSelectionState
@@ -164,11 +167,11 @@ fun AudioDetailsScreen(
                 return@Column
             }
 
-            ArtistInfo(artist = track?.artistName ?: "")
+            AlbumInfo(album = track?.albumName ?: "")
 
-            AlbumCoverArtDisplay(painter)
+            AlbumCoverArtDisplay(painter = painter)
 
-            TrackInfo(title = track?.title ?: "", album = track?.albumName ?: "")
+            ArtistAndTrackInfo(title = track?.title ?: "", artist = track?.artistName ?: "")
 
             PlaybackControlButtons(mediaPlayerViewModel)
         }
@@ -191,6 +194,17 @@ private fun PlaybackControlButtons(mediaPlayerViewModel: MediaPlayerStateViewMod
                 }
             )
         }
+        var paletteOptional by remember { mutableStateOf(Optional.empty<Palette>()) }
+        val track by mediaPlayerViewModel.nowPlayingTrack.collectAsState(Optional.empty<AudioTrack>())
+        track.getOrNull()?.let {
+            it.getPaletteForBitmap(
+                coroutineScope = rememberCoroutineScope(),
+                numberOfColors = 24
+            ).collectAsState()
+                .value
+                .run { paletteOptional = this }
+
+        }
         PlaybackControlButton(
             modifier = Modifier.aspectRatio(1F),
             imageResID = repeatIcon,
@@ -203,84 +217,12 @@ private fun PlaybackControlButtons(mediaPlayerViewModel: MediaPlayerStateViewMod
 }
 
 @Composable
-private fun ArtistInfo(artist: String) {
+private fun AlbumInfo(album: String) {
     Row(
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                // Artist Shadow
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .blur(
-                            radius = SMALL_COMPONENT_BLUR_RADIUS,
-                            edgeTreatment = BlurredEdgeTreatment.Unbounded
-                        )
-                        .alpha(SMALL_COMPONENT_BLUR_ALPHA),
-                    text = artist,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Normal,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = artist,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Normal,
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrackInfo(title: String, album: String) {
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                // Title Shadow
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .blur(
-                            radius = SMALL_COMPONENT_BLUR_RADIUS,
-                            edgeTreatment = BlurredEdgeTreatment.Unbounded
-                        )
-                        .alpha(SMALL_COMPONENT_BLUR_ALPHA),
-                    text = title,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.ExtraBold,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = title,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
             Box(modifier = Modifier.fillMaxWidth()) {
                 // Album Shadow
                 Text(
@@ -289,22 +231,146 @@ private fun TrackInfo(title: String, album: String) {
                         .blur(
                             radius = SMALL_COMPONENT_BLUR_RADIUS,
                             edgeTreatment = BlurredEdgeTreatment.Unbounded
-                        )
-                        .alpha(SMALL_COMPONENT_BLUR_ALPHA),
+                        ).alpha(SMALL_COMPONENT_BLUR_ALPHA)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        ),
                     text = album,
                     color = Color.Black,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Normal,
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        ),
                     text = album,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Center)
+                    fontWeight = FontWeight.Normal,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistAndTrackInfo(title: String, artist: String) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 8.dp)
+            ) {
+                // Title Shadow
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .blur(
+                            radius = SMALL_COMPONENT_BLUR_RADIUS,
+                            edgeTreatment = BlurredEdgeTreatment.Unbounded
+                        ).alpha(SMALL_COMPONENT_BLUR_ALPHA)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        ),
+                    text = title,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = title,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Artist Shadow
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .blur(
+                            radius = SMALL_COMPONENT_BLUR_RADIUS,
+                            edgeTreatment = BlurredEdgeTreatment.Unbounded
+                        ).alpha(SMALL_COMPONENT_BLUR_ALPHA)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        ),
+                    text = artist,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Light,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = artist,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Light,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        )
                 )
             }
         }
