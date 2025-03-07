@@ -128,7 +128,7 @@ class MusicPlayerActivity : FragmentActivity() {
         MediaPlayerController(
             isMinimized = isMinimized,
             showNowPlayingTrack = showNowPlayingTrack,
-            nowPlayingTrack = track,
+            track = track,
             trackDurationState = mediaPlayerStateViewModel.nowPlayingTrack
                 .map { it.getOrNull()?.duration?.toFloat() ?: 0F }.collectAsState(0F),
             playTimeProgressState = mediaPlayerStateViewModel.nowPlayingTrackProgress

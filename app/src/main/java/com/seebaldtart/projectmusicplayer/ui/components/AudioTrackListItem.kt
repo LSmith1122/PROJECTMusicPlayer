@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +61,7 @@ fun AudioTrackListItem (
     imageState: State<Optional<Bitmap>>,
     selectedIDState: State<Long>,
     onAudioTrackSelected: () -> Unit,
+    showDuration: Boolean = false,
     onViewShown: () -> Unit
 ) {
     PROJECTMusicPlayerTheme {
@@ -155,19 +158,22 @@ fun AudioTrackListItem (
                 }
             }
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .weight(1F, true)
-                    .fillMaxHeight()
-            ) {
-                Text(
-                    text = MediaPlayerUtils.getMediaTime(duration),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            if (showDuration) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1F, true)
+                        .fillMaxHeight()
+                ) {
+                    Text(
+                        text = MediaPlayerUtils.getMediaTime(duration),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(32.dp))
             }
-
         }
     }
 }

@@ -5,7 +5,10 @@ package com.seebaldtart.projectmusicplayer.ui.components
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.MarqueeAnimationMode
+import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -13,24 +16,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.AbsoluteCutCornerShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.material.ripple.rememberRipple
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -59,9 +55,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.palette.graphics.Palette
 import com.seebaldtart.projectmusicplayer.R
 import com.seebaldtart.projectmusicplayer.models.AudioTrack
-import com.seebaldtart.projectmusicplayer.ui.theme.PROJECTMusicPlayerTheme
 import com.seebaldtart.projectmusicplayer.ui.theme.SMALL_COMPONENT_BLUR_ALPHA
 import com.seebaldtart.projectmusicplayer.ui.theme.SMALL_COMPONENT_BLUR_RADIUS
 import com.seebaldtart.projectmusicplayer.ui.theme.TEXT_SIZE_SMALL
@@ -79,7 +75,7 @@ import kotlin.jvm.optionals.getOrNull
 fun MediaPlayerController(
     isMinimized: Boolean = false,
     showNowPlayingTrack: Boolean = false,
-    nowPlayingTrack: AudioTrack?,
+    track: AudioTrack?,
     trackDurationState: State<Float>,
     playTimeProgressState: State<Float>,
     isAudioPlayingState: State<Boolean>,
@@ -93,45 +89,61 @@ fun MediaPlayerController(
 ) {
     val spacerWeight = 0.5F
 
-    PROJECTMusicPlayerTheme {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Transparent)
-                .padding(bottom = 8.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                nowPlayingTrack?.takeIf { showNowPlayingTrack }?.let {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Transparent)
+            .padding(bottom = 8.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            var paletteOptional by remember { mutableStateOf(Optional.empty<Palette>()) }
+
+            track?.let {
+                val imageOptional by it.getThumbnailBitmap().collectAsState()
+                it.getPaletteForBitmap(
+                    coroutineScope = rememberCoroutineScope(),
+                    numberOfColors = 24
+                ).collectAsState()
+                .value
+                .run { paletteOptional = this }
+
+                if (showNowPlayingTrack) {
                     NowPlayingBanner(
                         title = it.title,
                         artist = it.artistName,
                         album = it.albumName,
-                        imageState = it.getThumbnailBitmap().collectAsState(),
+                        imageOptional = imageOptional,
+                        paletteOptional = paletteOptional,
+                        isAudioPlayingState = isAudioPlayingState,
                         onClick = { onNowPlayingTrackClicked?.invoke() },
+                        onPlayClicked = onPlayClicked,
+                        onPauseClicked = onPauseClicked,
                         onViewShown = onViewShown
                     )
                 }
+            }
 
-                SeekBarControls(
-                    spacerWeight = spacerWeight,
-                    selectedTrackDurationState = trackDurationState,
-                    playTimeProgressState = playTimeProgressState,
-                    onSeekPositionChanged = onSeekPositionChanged
+            SeekBarControls(
+                spacerWeight = spacerWeight,
+                selectedTrackDurationState = trackDurationState,
+                playTimeProgressState = playTimeProgressState,
+                onSeekPositionChanged = onSeekPositionChanged,
+                paletteOptional = paletteOptional
+            )
+
+            if (!isMinimized
+                && onPreviousClicked != null
+                && onPauseClicked != null
+                && onPlayClicked != null
+                && onNextClicked != null) {
+                MediaPlayerControls(
+                    onPreviousClicked = onPreviousClicked,
+                    isAudioPlayingState = isAudioPlayingState,
+                    palette = paletteOptional,
+                    onPauseClicked = onPauseClicked,
+                    onPlayClicked = onPlayClicked,
+                    onNextClicked = onNextClicked
                 )
-
-                if (!isMinimized
-                    && onPreviousClicked != null
-                    && onPauseClicked != null
-                    && onPlayClicked != null
-                    && onNextClicked != null) {
-                    MediaPlayerControls(
-                        onPreviousClicked = onPreviousClicked,
-                        isAudioPlayingState = isAudioPlayingState,
-                        onPauseClicked = onPauseClicked,
-                        onPlayClicked = onPlayClicked,
-                        onNextClicked = onNextClicked
-                    )
-                }
             }
         }
     }
@@ -142,15 +154,23 @@ fun NowPlayingBanner (
     title: String,
     artist: String,
     album: String,
-    imageState: State<Optional<Bitmap>>,
+    imageOptional: Optional<Bitmap>,
+    paletteOptional: Optional<Palette>,
+    isAudioPlayingState: State<Boolean>,
     onClick: () -> Unit,
-    onViewShown: () -> Unit
+    onPlayClicked: (() -> Unit)?,
+    onPauseClicked: (() -> Unit)?,
+    onViewShown: () -> Unit,
 ) {
+    val backgroundColor = paletteOptional.getOrNull()?.let { palette ->
+        palette.vibrantSwatch?.rgb?.let { Color(it) }
+    } ?: Color.Transparent
+
     Row(
         modifier = Modifier
             .height(dimensionResource(R.dimen.list_item_height))
             .fillMaxWidth()
-            .background(Color.Transparent)
+            .background(backgroundColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = LocalIndication.current,
@@ -161,11 +181,10 @@ fun NowPlayingBanner (
             onViewShown.invoke()
         }
 
-        val image by imageState
         val painterResource = painterResource(R.drawable.default_icon_song_album1)
-        val bitmapPainter = image.getOrNull()?.asImageBitmap()?.let { BitmapPainter(it) }
-        val painter by remember(image) {
-            mutableStateOf(if (image.isPresent && bitmapPainter != null) {
+        val bitmapPainter = imageOptional.getOrNull()?.asImageBitmap()?.let { BitmapPainter(it) }
+        val painter by remember(imageOptional) {
+            mutableStateOf(if (imageOptional.isPresent && bitmapPainter != null) {
                 bitmapPainter
             } else {
                 painterResource
@@ -178,6 +197,7 @@ fun NowPlayingBanner (
                 .aspectRatio(ratio = 1F, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
                 .padding(all = 4.dp)
+                .shadow(elevation = 4.dp, ambientColor = Color(0xFFDEDEDE))
         )
 
         Row(
@@ -188,7 +208,7 @@ fun NowPlayingBanner (
                 .padding(start = 4.dp, end = 16.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.weight(weight = 1F, fill = true)
             ) {
                 Box(
                     modifier = Modifier
@@ -203,7 +223,16 @@ fun NowPlayingBanner (
                             .blur(
                                 radius = SMALL_COMPONENT_BLUR_RADIUS,
                                 edgeTreatment = BlurredEdgeTreatment.Unbounded
-                            ).alpha(SMALL_COMPONENT_BLUR_ALPHA),
+                            )
+                            .alpha(SMALL_COMPONENT_BLUR_ALPHA)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                animationMode = MarqueeAnimationMode.Immediately,
+                                repeatDelayMillis = 3 * 1000,
+                                initialDelayMillis = 5 * 1000,
+                                spacing = MarqueeSpacing(48.dp),
+                                velocity = 24.dp
+                            ),
                         text = title,
                         color = Color.Black,
                         textAlign = TextAlign.Start,
@@ -218,8 +247,17 @@ fun NowPlayingBanner (
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.align(Alignment.BottomStart),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                animationMode = MarqueeAnimationMode.Immediately,
+                                repeatDelayMillis = 3 * 1000,
+                                initialDelayMillis = 5 * 1000,
+                                spacing = MarqueeSpacing(48.dp),
+                                velocity = 24.dp
+                            )
                     )
                 }
                 Box(
@@ -236,7 +274,15 @@ fun NowPlayingBanner (
                                 radius = SMALL_COMPONENT_BLUR_RADIUS,
                                 edgeTreatment = BlurredEdgeTreatment.Unbounded
                             )
-                            .alpha(SMALL_COMPONENT_BLUR_ALPHA),
+                            .alpha(SMALL_COMPONENT_BLUR_ALPHA)
+                            .basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                animationMode = MarqueeAnimationMode.Immediately,
+                                repeatDelayMillis = 3 * 1000,
+                                initialDelayMillis = 5 * 1000,
+                                spacing = MarqueeSpacing(48.dp),
+                                velocity = 24.dp
+                            ),
                         text = artistAndAlbumText,
                         color = Color.Black,
                         textAlign = TextAlign.Start,
@@ -249,8 +295,36 @@ fun NowPlayingBanner (
                         textAlign = TextAlign.Start,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            animationMode = MarqueeAnimationMode.Immediately,
+                            repeatDelayMillis = 3 * 1000,
+                            initialDelayMillis = 5 * 1000,
+                            spacing = MarqueeSpacing(48.dp),
+                            velocity = 24.dp
+                        )
                     )
+                }
+            }
+            val isAudioPlaying by isAudioPlayingState
+            val imageResIDPlayPause by remember(isAudioPlaying) {
+                mutableIntStateOf(
+                    if (isAudioPlaying) {
+                        R.drawable.baseline_pause_white_24
+                    } else {
+                        R.drawable.baseline_play_arrow_white_24
+                    }
+                )
+            }
+            PlaybackControlButton(
+                imageResID = imageResIDPlayPause,
+                contentDescription = stringResource(R.string.content_description_play_pause)
+            ) {
+                if (isAudioPlaying) {
+                    onPauseClicked?.invoke()
+                } else {
+                    onPlayClicked?.invoke()
                 }
             }
         }
@@ -262,7 +336,8 @@ private fun SeekBarControls(
     spacerWeight: Float,
     selectedTrackDurationState: State<Float>,
     playTimeProgressState: State<Float>,
-    onSeekPositionChanged: (Float) -> Unit
+    onSeekPositionChanged: (Float) -> Unit,
+    paletteOptional: Optional<Palette>
 ) {
     val scope = rememberCoroutineScope()
     Row(
@@ -279,7 +354,21 @@ private fun SeekBarControls(
             var seekbarUpdate by remember { mutableFloatStateOf(0F) }
             var isManuallySliding by remember { mutableStateOf(false) }
             val actualSliderTime = if (isManuallySliding) seekbarUpdate else playTimeProgress
+
+            val defaultColors = SliderDefaults.colors()
+            val colors = paletteOptional.getOrNull()?.let { palette ->
+                SliderDefaults.colors(
+                    thumbColor = palette.vibrantSwatch?.rgb?.let { Color(it) }
+                        ?: defaultColors.thumbColor,
+                    activeTrackColor = palette.vibrantSwatch?.rgb?.let { Color(it) }
+                        ?: defaultColors.activeTrackColor,
+                    activeTickColor = palette.vibrantSwatch?.rgb?.let { Color(it) }
+                        ?: defaultColors.activeTickColor
+                )
+            } ?: defaultColors
+
             Slider(
+                modifier = Modifier.fillMaxWidth(),
                 value = actualSliderTime,
                 valueRange = 0F..totalDuration,
                 onValueChangeFinished = {
@@ -294,7 +383,7 @@ private fun SeekBarControls(
                         isManuallySliding = true
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                colors = colors
             )
 
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -340,9 +429,10 @@ private fun BoxScope.TimeText(
 private fun MediaPlayerControls(
     onPreviousClicked: () -> Unit,
     isAudioPlayingState: State<Boolean>,
+    palette: Optional<Palette>,
     onPauseClicked: () -> Unit,
     onPlayClicked: () -> Unit,
-    onNextClicked: () -> Unit
+    onNextClicked: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.Center,
@@ -371,13 +461,14 @@ private fun MediaPlayerControls(
             modifier = Modifier.weight(weight = 2F, fill = true),
             imageResID = imageResIDPlayPause,
             contentDescription = stringResource(R.string.content_description_play_pause),
-        ) {
-            if (isAudioPlaying) {
-                onPauseClicked.invoke()
-            } else {
-                onPlayClicked.invoke()
+            onClick = {
+                if (isAudioPlaying) {
+                    onPauseClicked.invoke()
+                } else {
+                    onPlayClicked.invoke()
+                }
             }
-        }
+        )
 
         PlaybackControlButton(
             modifier = Modifier.weight(weight = 2F, fill = true),
@@ -396,7 +487,7 @@ private fun MediaPlayerController_Preview() {
     MediaPlayerController(
         isMinimized = false,
         showNowPlayingTrack = true,
-        nowPlayingTrack = getMockAudioTrack(),
+        track = getMockAudioTrack(),
         trackDurationState = remember { mutableFloatStateOf(100F) },
         playTimeProgressState = remember { mutableFloatStateOf(0F) },
         isAudioPlayingState = remember { mutableStateOf(false) },
